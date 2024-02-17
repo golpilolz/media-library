@@ -6,7 +6,7 @@ abstract class FolderManager implements FolderManagerInterface{
     /**
      * {@inheritdoc}
      */
-    public function createFolder()
+    public function createFolder(): FolderInterface
     {
         $class = $this->getClass();
         return new $class();
@@ -14,7 +14,7 @@ abstract class FolderManager implements FolderManagerInterface{
     /**
      * {@inheritdoc}
      */
-    public function findFolderById($id)
+    public function findFolderById($id): FolderManagerInterface
     {
         return $this->findFolderBy(array('id' => $id));
     }
@@ -22,7 +22,7 @@ abstract class FolderManager implements FolderManagerInterface{
     /**
      * {@inheritdoc}
      */
-    public function findFolderByName($name)
+    public function findFolderByName($name): FolderManagerInterface
     {
         return $this->findFolderBy(array('name' => $name));
     }

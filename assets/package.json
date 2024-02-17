@@ -20,11 +20,13 @@
       }
     },
     "importmap": {
-      "@hotwired/stimulus": "^3.0.0"
+      "@hotwired/stimulus": "^3.0.0",
+      "pug": "^3.0.2"
     }
   },
   "peerDependencies": {
-    "@hotwired/stimulus": "^3.0.0"
+    "@hotwired/stimulus": "^3.0.0",
+    "pug": "^3.0.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
@@ -33,11 +35,11 @@
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-typescript": "^7.18.6",
     "@hotwired/stimulus": "^3.0.0",
-    "typescript": "^4.9.5",
-    "csso-cli": "^4.0.2"
+    "csso-cli": "^4.0.2",
+    "typescript": "^4.9.5"
   },
   "scripts": {
     "build": "babel src --extensions .ts -d dist",
-    "build:css": "csso src/style.css -o dist/style.min.css"
+    "build:css": "cat src/*.css | csso -o dist/style.min.css"
   }
 }

@@ -1,9 +1,7 @@
 {% block golpilolz_media_library_single_widget %}
-    {%- set dataController = (attr['data-controller']|default('') ~ ' golpilolz--media-library')|trim -%}
+    {%- set dataController = (attr['data-controller']|default('') ~ ' golpilolz--media-library--media-library')|trim -%}
     {% set randid = random() %}
     {% apply spaceless %}
-        {# {{ include('@IpBibliotheque/Bibliotheque/helper/assets_css.html.twig', {'prefix': form.vars.prefix}) }}
-        {{ include("@IpBibliotheque/Bibliotheque/helper/assets_js.html.twig", {'prefix': form.vars.prefix}) }} #}
         <div class="row" data-controller="{{ dataController }}">
             <div class="col-md-12">
                 <div id="biblioimgcontainer{{ randid }}">
@@ -11,7 +9,8 @@
                         {# {{ ipBblImageView(value,['img-thumbnail', 'img-preview']) }}  #}
                     {% endif %}
                 </div>
-                <div id="ip_bibliotheque_action{{ randid }}" class="ip_bibliotheque_action btn-group {% if value is not empty %}ip_bbl_btn-group{% endif %}">
+                <div id="ip_bibliotheque_action{{ randid }}"
+                     class="ip_bibliotheque_action btn-group {% if value is not empty %}ip_bbl_btn-group{% endif %}">
                     {% if value is not empty %}
                         <button type="button" id="ip_bibliotheque_add_image{{ randid }}" class="btn btn-primary">
                             <i class="fa fa-edit"></i>
@@ -22,28 +21,32 @@
                             Supprimer
                         </button>
                     {% else %}
-                        <button type="button" id="ip_bibliotheque_add_image{{ randid }}" class="btn btn-primary">
+                        <button type="button" id="ip_bibliotheque_add_image{{ randid }}" class="btn btn-primary"
+                                data-golpilolz--media-library--media-library-target="showPopup">
                             <i class="fa fa-plus"></i>
                             Ajouter des images
                         </button>
                     {% endif %}
                 </div>
             </div>
-        </div>
 
-        <div id="popupBilbio{{ randid }}" class="popup">
-            <div class="popup-content" style="height: 640px">
-                <div class="pull-right">
-                    <button type="button" class="btn btn-sm btn-danger close-popup">
-                        <i class="fa fa-times"></i>
-                    </button>
+            <div id="popupBilbio" class="popup" data-golpilolz--media-library--media-library-target="popup"
+                 data-folder-url="{{ path('golpilolz_media-library_folders') }}">
+                <div class="popup-content">
+                    <div class="pull-right">
+                        <button type="button" class="btn btn-sm btn-danger close-popup"
+                                data-golpilolz--media-library--media-library-target="closePopup">
+                            <span class="icon-cross"></span>
+                        </button>
+                    </div>
+                    <div id="loaderbiblio" class="loader-container" data-golpilolz--media-library--media-library-target="loader">
+                        <span class="loader"></span>
+                    </div>
+                    <div id="bibliotheque{{ randid }}"></div>
                 </div>
-                <div id="loaderbiblio" style="position: absolute;left: 50%;top: 45%;">
-                    <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
-                </div>
-                <div id="bibliotheque{{ randid }}"></div>
             </div>
+            <input type="hidden" id="{{ form.vars.id }}" {{ block('widget_attributes') }}
+                   value="{% if value is not empty %}{{ value }}{% endif %}"/>
         </div>
-        <input type="hidden" id="{{ form.vars.id }}" {{ block('widget_attributes') }} value="{% if value is not empty %}{{ value }}{% endif %}"/>
     {% endapply %}
 {% endblock golpilolz_media_library_single_widget %}

@@ -4,33 +4,24 @@ namespace Golpilolz\MediaLibrary\Model;
 
 interface FolderManagerInterface
 {
-    /**
-     * @return FolderInterface
-     */
-    public function createFolder();
+    public function createFolder(): FolderInterface;
 
     /**
      * Returns a collection with all folder instances.
-     *
-     * @return \Traversable
      */
-    public function findFolders();
+    public function findFolders(): array;
 
     /**
-     * Returns the folders's fully qualified class name.
-     *
-     * @return string
+     * Returns the folders fully qualified class name.
      */
-    public function getClass();
+    public function getClass(): string;
 
     /**
      * Finds one group by the given criteria.
      *
      * @param array $criteria
-     *
-     * @return FolderManagerInterface
      */
-    public function findFolderBy(array $criteria);
+    public function findFolderBy(array $criteria): FolderManagerInterface;
 
     public function findFolderById($id);
 
@@ -38,8 +29,6 @@ interface FolderManagerInterface
 
     /**
      * Update a folder
-     *
-     * @param FolderInterface $folder
      */
     public function updateFolder(FolderInterface $folder);
 }

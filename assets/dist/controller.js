@@ -16,19 +16,44 @@ var _default = /*#__PURE__*/function (_Controller) {
   }
   var _proto = _default.prototype;
   _proto.connect = function connect() {
+    var _this = this;
     this.clear();
-    console.log('MediaLibraryController connected');
+    this.showPopupTarget.addEventListener('click', function (event) {
+      return _this.onShowPopup(event);
+    });
+    this.closePopupTarget.addEventListener('click', function (event) {
+      return _this.onClosePopup(event);
+    });
     this.dispatchEvent('connect');
   };
   _proto.clear = function clear() {
-    this.inputTarget.value = '';
+    /*this.inputTarget.value = '';
     this.inputTarget.style.display = 'block';
     this.placeholderTarget.style.display = 'block';
     this.previewTarget.style.display = 'none';
     this.previewImageTarget.style.display = 'none';
     this.previewImageTarget.style.backgroundImage = 'none';
-    this.previewFilenameTarget.textContent = '';
+    this.previewFilenameTarget.textContent = '';*/
+
     this.dispatchEvent('clear');
+  };
+  _proto.onShowPopup = function onShowPopup(event) {
+    var _this2 = this;
+    this.popupTarget.classList.add('show');
+    var url = this.popupTarget.dataset.folderUrl;
+    console.log(url);
+    fetch(url).then(function (response) {
+      return response.json();
+    }).then(function (data) {
+      _this2.loaderTarget.style.display = 'none';
+      _this2.folders = data;
+      console.log(_this2.folders);
+    });
+    this.dispatchEvent('showPopup');
+  };
+  _proto.onClosePopup = function onClosePopup(event) {
+    this.popupTarget.classList.remove('show');
+    this.dispatchEvent('closePopup');
   };
   _proto.dispatchEvent = function dispatchEvent(name, payload) {
     if (payload === void 0) {
@@ -36,9 +61,11 @@ var _default = /*#__PURE__*/function (_Controller) {
     }
     this.dispatch(name, {
       detail: payload,
-      prefix: 'golpilolz_medialibrary'
+      prefix: 'golpilolz_media-library'
     });
   };
   return _default;
 }(Controller);
+/*declare readonly previewImageTarget: HTMLDivElement*/
+_default.targets = ['select', 'showPopup', 'popup', 'closePopup', 'loader'];
 export { _default as default };
