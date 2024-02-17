@@ -1,0 +1,11 @@
+{% set randid = random() %}
+
+{% spaceless %}
+    {{ include('@IpBibliotheque/Bibliotheque/helper/assets_css.html.twig', {'prefix': prefix}) }}
+    {{ include("@IpBibliotheque/Bibliotheque/helper/assets_js_view.html.twig", {'prefix': prefix, 'multiple': multiple}) }}
+
+    <div id="loaderbiblio" style="position: absolute;left: 50%;top: 45%;">
+        <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
+    </div>
+    <div id="bibliotheque{{ randid }}"></div>
+{% endspaceless %}

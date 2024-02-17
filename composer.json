@@ -1,0 +1,31 @@
+{
+  "name": "golpilolz/media-library",
+  "type": "symfony-bundle",
+  "description": "Media library for Symfony Form",
+  "keywords": [
+    "symfony-ux"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Arthur Haton",
+      "email": ""
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Golpilolz\\MediaLibrary\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Golpilolz\\MediaLibrary\\Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "symfony/asset-mapper": "6.4.*",
+    "twig/extra-bundle": "^2.12|^3.0",
+    "twig/twig": "^2.12|^3.0"
+  },
+  "minimum-stability": "dev"
+}
