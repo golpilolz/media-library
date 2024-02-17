@@ -29,6 +29,7 @@ class Configuration implements ConfigurationInterface
         ;
         $this->addFileSection($rootNode);
         $this->addFolderSection($rootNode);
+
         return $treeBuilder;
     }
 

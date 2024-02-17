@@ -46,7 +46,7 @@ class GolpilolzMediaLibraryExtension extends Extension implements PrependExtensi
         $config = $this->processConfiguration($configuration, $configs);
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
-        $loader->load('services.yml');
+        $loader->load('services.yaml');
 
         foreach ($config as $key => $value) {
             $container->setParameter('golpilolz_medialibrary.' . $key, $value);
@@ -82,9 +82,9 @@ class GolpilolzMediaLibraryExtension extends Extension implements PrependExtensi
         ));
     }
 
-    public function loadFolders(array $config, ContainerBuilder $container, Loader\YamlFileLoader $loader)
+    public function loadFolders(array $config, ContainerBuilder $container, Loader\YamlFileLoader $loader): void
     {
-        $loader->load('folder.yml');
+        $loader->load('folder.yaml');
         $container->setAlias('golpilolz_media-library.folder_manager', $config['folder_manager']);
 
         $this->remapParametersNamespaces($config, $container, array(
