@@ -1,6 +1,7 @@
 'use strict';
 
-import { Controller } from '@hotwired/stimulus';
+import {Controller} from '@hotwired/stimulus';
+import {renderFile} from 'ejs';
 
 export default class extends Controller {
     declare readonly inputTarget: HTMLInputElement
@@ -10,7 +11,8 @@ export default class extends Controller {
     declare readonly loaderTarget: HTMLDivElement
     declare folders: Array<any>
 
-    static elements: Array<any> =  [['nav', 'search'], ['options'], ['tree', 'content', 'modalimg'], ['infos']]
+    // static elements: Array<any> =  [['nav', 'search'], ['options'], ['tree', 'content', 'modalimg'], ['infos']]
+    static elements: Array<any> = [['nav', 'search'], ['options'], ['tree', 'content'], ['infos']]
     static targets = ['select', 'showPopup', 'popup', 'closePopup', 'loader']
 
     connect() {
@@ -52,9 +54,18 @@ export default class extends Controller {
     }
 
     private initInterface() {
-        /*for (const element of default.elements) {
-
-        }*/
+        for (const element of (this.constructor as any).elements) {
+            for (const target of element) {
+                console.log(target)
+                let template = renderFile('templates/' + target + '.ejs', (err, str) => {
+                    if(err) {
+                        console.log(err)
+                    }  else {
+                        console.log(str)
+                    }
+                })
+            }
+        }
     }
 
     private show() {
@@ -66,6 +77,6 @@ export default class extends Controller {
     }
 
     private dispatchEvent(name: string, payload: any = {}) {
-        this.dispatch(name, { detail: payload, prefix: 'golpilolz_media-library' });
+        this.dispatch(name, {detail: payload, prefix: 'golpilolz_media-library'});
     }
 }
