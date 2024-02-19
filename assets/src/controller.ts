@@ -52,9 +52,9 @@ export default class extends Controller {
     }
 
     private initInterface() {
-        for (const element of default.elements) {
+        /*for (const element of default.elements) {
 
-        }
+        }*/
     }
 
     private show() {
