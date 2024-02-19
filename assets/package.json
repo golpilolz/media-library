@@ -21,12 +21,12 @@
     },
     "importmap": {
       "@hotwired/stimulus": "^3.0.0",
-      "pug": "^3.0.2"
+      "ejs": "^3.1.9"
     }
   },
   "peerDependencies": {
     "@hotwired/stimulus": "^3.0.0",
-    "pug": "^3.0.2"
+    "ejs": "^3.1.9"
   },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
