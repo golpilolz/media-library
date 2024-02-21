@@ -1,7 +1,7 @@
 'use strict';
 
 import {Controller} from '@hotwired/stimulus';
-import {renderFile} from 'ejs';
+import * as _ from 'underscore';
 
 export default class extends Controller {
     declare readonly inputTarget: HTMLInputElement
@@ -57,13 +57,15 @@ export default class extends Controller {
         for (const element of (this.constructor as any).elements) {
             for (const target of element) {
                 console.log(target)
-                let template = renderFile('templates/' + target + '.ejs', (err, str) => {
-                    if(err) {
-                        console.log(err)
-                    }  else {
-                        console.log(str)
-                    }
-                })
+                // Using the template() method with
+                // additional parameters
+                let compiled_temp = _.template(
+                    "<% _.forEach(students, function(students) " +
+                    "{ %><li><b><%- students %></b></li><% }); %>"
+                )({ students: ["Shubham", "Shakya"] });
+
+                // Displays the output
+                console.log(compiled_temp);
             }
         }
     }
