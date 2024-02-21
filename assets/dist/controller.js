@@ -11,7 +11,7 @@ function _assertThisInitialized(self) { if (self === void 0) { throw new Referen
 function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
 function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
 import { Controller } from '@hotwired/stimulus';
-import * as _ from 'underscore';
+import * as Mustache from 'mustache';
 var _default = /*#__PURE__*/function (_Controller) {
   _inheritsLoose(_default, _Controller);
   var _super = _createSuper(_default);
@@ -65,14 +65,11 @@ var _default = /*#__PURE__*/function (_Controller) {
       for (var _iterator2 = _createForOfIteratorHelperLoose(element), _step2; !(_step2 = _iterator2()).done;) {
         var target = _step2.value;
         console.log(target);
-        // Using the template() method with
-        // additional parameters
-        var compiled_temp = _.template("<% _.forEach(students, function(students) " + "{ %><li><b><%- students %></b></li><% }); %>")({
-          students: ["Shubham", "Shakya"]
+        var template = 'Hello {{name}}, {{age}} <!-- red squiggles under age -->';
+        var result = Mustache.render(template, {
+          name: 'Luke',
+          age: "32"
         });
-
-        // Displays the output
-        console.log(compiled_temp);
       }
     }
   };
