@@ -1,7 +1,7 @@
 'use strict';
 
 import {Controller} from '@hotwired/stimulus';
-import * as _ from 'underscore';
+import * as Mustache from 'mustache';
 
 export default class extends Controller {
     declare readonly inputTarget: HTMLInputElement
@@ -57,15 +57,11 @@ export default class extends Controller {
         for (const element of (this.constructor as any).elements) {
             for (const target of element) {
                 console.log(target)
-                // Using the template() method with
-                // additional parameters
-                let compiled_temp = _.template(
-                    "<% _.forEach(students, function(students) " +
-                    "{ %><li><b><%- students %></b></li><% }); %>"
-                )({ students: ["Shubham", "Shakya"] });
-
-                // Displays the output
-                console.log(compiled_temp);
+                const template = 'Hello {{name}}, {{age}} <!-- red squiggles under age -->';
+                const result = Mustache.render(template, {
+                    name: 'Luke',
+                    age: "32"
+                });
             }
         }
     }
