@@ -44,3 +44,25 @@
     font-size: 20px;
     padding: 2px 11px;
 }
+
+.golpilolz-media-library .btn {
+    border: none;
+    color: white;
+    padding: 0.7rem;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 1rem;
+}
+
+.golpilolz-media-library .content-div {
+    display: flex;
+}
+
+.golpilolz-media-library .browse {
+    display: flex;
+}
+
+.golpilolz-media-library .browse .btn-group {
+    margin: 0 1.5rem;
+}

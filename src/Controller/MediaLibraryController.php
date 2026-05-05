@@ -9,7 +9,6 @@ use Golpilolz\MediaLibrary\Model\FolderManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/media-library', name: 'golpilolz_media-library_')]
@@ -22,14 +21,14 @@ class MediaLibraryController extends AbstractController
         $folders = $folderManager->findFolders();
 
         $json = [];
-        $json[] = [
-            'id' => 0,
-            'type' => 'folder',
-            'name' => 'Accueil',
-            'parent' => null,
-            'active'=> true,
-            'open' => true
-        ];
+//        $json[] = [
+//            'id' => 0,
+//            'type' => 'folder',
+//            'name' => 'Accueil',
+//            'parent' => null,
+//            'active'=> true,
+//            'open' => true
+//        ];
 
         foreach ($folders as $folder) {
 
