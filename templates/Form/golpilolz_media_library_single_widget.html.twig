@@ -32,17 +32,18 @@
 
             <div id="popupBilbio" class="popup" data-golpilolz--media-library--media-library-target="popup"
                  data-folder-url="{{ path('golpilolz_media-library_folders') }}">
-                <div class="popup-content">
+                <div class="golpilolz-media-library popup-content">
                     <div class="pull-right">
                         <button type="button" class="btn btn-sm btn-danger close-popup"
                                 data-golpilolz--media-library--media-library-target="closePopup">
                             <span class="icon-cross"></span>
                         </button>
                     </div>
-                    <div id="loaderbiblio" class="loader-container" data-golpilolz--media-library--media-library-target="loader">
+                    <div id="loaderbiblio" class="loader-container"
+                         data-golpilolz--media-library--media-library-target="loader">
                         <span class="loader"></span>
                     </div>
-                    <div id="bibliotheque{{ randid }}"></div>
+                    <div class="media-library-content"></div>
                 </div>
             </div>
             <input type="hidden" id="{{ form.vars.id }}" {{ block('widget_attributes') }}
