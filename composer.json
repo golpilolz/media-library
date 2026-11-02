@@ -23,7 +23,7 @@
     }
   },
   "require": {
-    "symfony/asset-mapper": "6.4.*",
+    "symfony/asset-mapper": "^7.4 | ^8",
     "twig/extra-bundle": "^2.12|^3.0",
     "twig/twig": "^2.12|^3.0"
   },
