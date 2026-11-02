@@ -1,7 +1,6 @@
 {% block golpilolz_media_library_single_widget %}
     {%- set dataController = (attr['data-controller']|default('') ~ ' golpilolz--media-library--media-library')|trim -%}
     {% set randid = random() %}
-    {% apply spaceless %}
         <div class="row" data-controller="{{ dataController }}">
             <div class="col-md-12">
                 <div id="biblioimgcontainer{{ randid }}">
@@ -49,5 +48,4 @@
             <input type="hidden" id="{{ form.vars.id }}" {{ block('widget_attributes') }}
                    value="{% if value is not empty %}{{ value }}{% endif %}"/>
         </div>
-    {% endapply %}
 {% endblock golpilolz_media_library_single_widget %}
