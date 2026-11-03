@@ -115,6 +115,7 @@ export default class extends Controller {
     static values = {
         foldersUrl: String,
         uploadUrl: {type: String, default: ''},
+        folderUrl: {type: String, default: ''},
         multiple: {type: Boolean, default: false},
     }
 
@@ -130,6 +131,7 @@ export default class extends Controller {
     declare readonly countTarget: HTMLElement
     declare readonly foldersUrlValue: string
     declare readonly uploadUrlValue: string
+    declare readonly folderUrlValue: string
     declare readonly multipleValue: boolean
 
     private folders: MediaFolder[] = []
@@ -744,6 +746,7 @@ export default class extends Controller {
                     let response: { id?: number } | undefined
                     try {
                         response = await this.emit<{ id?: number }>('add-folder', {parent: this.getFolder(parent) ?? null, name})
+                            ?? await this.createFolder(name, parent)
                     } catch (error) {
                         console.error(error)
                         throw new Error(LANG.errorAddFolder)
@@ -755,6 +758,23 @@ export default class extends Controller {
                 },
             },
         ])
+    }
+
+    // Persist a folder with the folder_url endpoint, when no add-folder listener answered.
+    private async createFolder(name: string, parent: number): Promise<{ id?: number } | undefined> {
+        if (this.folderUrlValue === '') {
+            return undefined
+        }
+        const response = await fetch(this.folderUrlValue, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+            body: JSON.stringify({name, parent}),
+        })
+        const json = await response.json().catch(() => null)
+        if (!response.ok || json?.result !== 'success' || typeof json.id !== 'number') {
+            throw new Error(json?.message ?? `HTTP ${response.status}`)
+        }
+        return {id: json.id}
     }
 
     private moveFile(file: MediaFile) {

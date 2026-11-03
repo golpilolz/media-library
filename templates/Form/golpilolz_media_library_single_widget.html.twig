@@ -7,6 +7,7 @@
          data-controller="{{ dataController }}"
          data-{{ controller }}-folders-url-value="{{ path('golpilolz_media-library_folders') }}"
          data-{{ controller }}-upload-url-value="{{ upload_url }}"
+         data-{{ controller }}-folder-url-value="{{ folder_url|default('') }}"
          data-{{ controller }}-multiple-value="{{ multiple ? 'true' : 'false' }}">
         {%- set filled = ids|filter(id => id is not empty)|length > 0 -%}
         <button type="button" class="ml-field-empty"{{ filled ? ' hidden' }}

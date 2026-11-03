@@ -55,6 +55,7 @@ $builder->add('file', GolpilolzMediaLibrarySingleType::class, [
     // extends EntityType; 'class' defaults to Golpilolz\MediaLibrary\Entity\File, 'choice_label' to 'name'
     'multiple' => false,
     'upload_url' => null,         // drag & drop upload URL; defaults to the bundle's endpoint, null disables upload
+    'folder_url' => null,         // folder creation URL; defaults to the bundle's endpoint, null = only event listeners
     'theme' => 'easyadmin',       // defaults to the `theme` config key
 ]);
 ```
@@ -85,7 +86,7 @@ tile to upload them there). Files can't be dropped at the root, which holds no f
 Each dropped file is POSTed to `upload_url` (field `file`, plus `folder`: the target folder
 id). The bundle's endpoint `golpilolz_media-library_upload` (`POST /media-library/upload`)
 stores it in `upload_dir` (sanitized name, suffixed on collision), rejects extensions outside
-`allowed_extensions`, and creates the `File` entity. It has no access control: protect
+`allowed_extensions`, and creates the `File` entity. Like the folder endpoint, it has no access control: protect
 `^/media-library` in `security.yaml` like the rest of your back office. A custom endpoint
 must respond with:
 
@@ -111,7 +112,13 @@ The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-lib
 | `upload-sending` | `file`, `folder`, `xhr`, `formData` |
 | `connect`, `showPopup`, `closePopup`, `clear` | – |
 
-The bundle has no endpoints for rename / move / delete / add folder yet: those changes are only
+Folder creation is persisted by the bundle's endpoint `golpilolz_media-library_add_folder`
+(`POST /media-library/folders`, JSON body `{"name": "…", "parent": <id, or 0 for the root>}`,
+responds `{"result": "success", "id": 7}`), set by the `folder_url` form option. An `add-folder`
+listener that calls `respondWith()` replaces it; with `folder_url` set to `null` and no listener,
+the folder only lives in the popup.
+
+The bundle has no endpoints for rename / move / delete yet: those changes are only
 applied in the popup unless a listener persists them. A listener can make the popup wait by
 passing a promise to `event.detail.respondWith()`; if it rejects, the error is shown in the
 dialog and nothing changes. For `add-folder`, resolve with `{id}` (otherwise the folder gets a

@@ -39,6 +39,7 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
         $view->vars = array_replace($view->vars, [
             'prefix' => $this->prefix,
             'upload_url' => $options['upload_url'] ?? '',
+            'folder_url' => $options['folder_url'] ?? '',
             'theme' => $theme,
             'block_prefixes' => $prefixes,
         ]);
@@ -56,12 +57,16 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             // URL receiving Dropzone uploads (drag & drop into the library): the bundle's endpoint
             // by default. Upload is disabled when null.
             'upload_url' => $this->urlGenerator->generate('golpilolz_media-library_upload'),
+            // URL receiving folder creation (POST JSON {name, parent}, responds {id}): the bundle's
+            // endpoint by default. When null, only an "add-folder" event listener can persist folders.
+            'folder_url' => $this->urlGenerator->generate('golpilolz_media-library_add_folder'),
             // Theme of the widget and popup: adds the "ml-theme-<theme>" class. Built-in themes:
             // "default", "sonata" (Sonata Admin) and "easyadmin" (EasyAdmin).
             'theme' => $this->defaultTheme,
         ]);
         $resolver->setAllowedTypes('prefix', ['string']);
         $resolver->setAllowedTypes('upload_url', ['null', 'string']);
+        $resolver->setAllowedTypes('folder_url', ['null', 'string']);
         $resolver->setAllowedTypes('theme', ['string']);
         $resolver->setNormalizer('theme', static function (Options $options, string $theme): string {
             if (!preg_match('/^[a-z0-9_]+$/', $theme)) {
