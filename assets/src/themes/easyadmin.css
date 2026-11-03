@@ -18,7 +18,6 @@
     --ml-hover: color-mix(in srgb, var(--ml-text) 5%, transparent);
     --ml-selected: color-mix(in srgb, var(--ml-accent) 14%, transparent);
     --ml-separator: color-mix(in srgb, var(--ml-text) 12%, transparent);
-    --ml-thumb: color-mix(in srgb, var(--ml-text) 5%, var(--ml-surface));
     --ml-folder: var(--color-primary, #5468d4);
     --ml-backdrop: rgba(15, 23, 42, .4);
     --ml-menu: color-mix(in srgb, var(--dropdown-bg, #fff) 92%, transparent);

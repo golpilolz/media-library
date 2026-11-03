@@ -15,7 +15,6 @@
     --ml-hover: rgba(0, 0, 0, .04);
     --ml-selected: rgba(0, 113, 227, .1);
     --ml-separator: rgba(60, 60, 67, .14);
-    --ml-thumb: #f0f0f3;
     --ml-folder: #5ab0f5;
     --ml-backdrop: rgba(0, 0, 0, .32);
     --ml-menu: rgba(255, 255, 255, .82);
@@ -44,7 +43,6 @@
         --ml-hover: rgba(255, 255, 255, .06);
         --ml-selected: rgba(10, 132, 255, .2);
         --ml-separator: rgba(84, 84, 88, .6);
-        --ml-thumb: #2c2c2e;
         --ml-backdrop: rgba(0, 0, 0, .55);
         --ml-menu: rgba(44, 44, 46, .82);
         --ml-toast: rgba(58, 58, 60, .95);
@@ -157,7 +155,7 @@
     height: 56px;
     overflow: hidden;
     border-radius: 8px;
-    background: var(--ml-thumb) center / 28px no-repeat;
+    background: center / 28px no-repeat;
 }
 
 .golpilolz-media-library-widget .ml-preview-thumb img {
