@@ -1,9 +1,4 @@
 golpilolz_media_library:
-    # Concrete Doctrine entities extending Golpilolz\MediaLibrary\Model\{File,Folder}
-    file:
-        file_class: App\Entity\File
-    folder:
-        folder_class: App\Entity\Folder
     # Public path where the library files are served
     assets_path: /assets/golpilolzmedialibrary
     # Name of the root folder shown in the popup

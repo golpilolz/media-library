@@ -2,6 +2,7 @@
 
 namespace Golpilolz\MediaLibrary\Form\Type;
 
+use Golpilolz\MediaLibrary\Entity\File;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormView;
@@ -35,6 +36,8 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
     {
         $resolver->setDefaults([
             'prefix' => '',
+            'class' => File::class,
+            'choice_label' => 'name',
             // URL receiving Dropzone uploads (drag & drop into the library). Upload is disabled when null.
             'upload_url' => null,
         ]);

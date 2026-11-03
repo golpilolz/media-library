@@ -2,10 +2,8 @@
 
 namespace Golpilolz\MediaLibrary\Controller;
 
-use Golpilolz\MediaLibrary\Model\FileInterface;
-use Golpilolz\MediaLibrary\Model\Folder;
 use Golpilolz\MediaLibrary\Model\FolderInterface;
-use Golpilolz\MediaLibrary\Model\FolderManagerInterface;
+use Golpilolz\MediaLibrary\Repository\FolderRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,27 +13,14 @@ use Symfony\Component\Routing\Attribute\Route;
 class MediaLibraryController extends AbstractController
 {
     #[Route('/folders', name: 'folders')]
-    public function foldersAction(Request $request, FolderManagerInterface $folderManager): JsonResponse
+    public function foldersAction(Request $request, FolderRepository $folderRepository): JsonResponse
     {
-        /** @var Folder[] $folders */
-        $folders = $folderManager->findFolders();
-
         $json = [];
-//        $json[] = [
-//            'id' => 0,
-//            'type' => 'folder',
-//            'name' => 'Accueil',
-//            'parent' => null,
-//            'active'=> true,
-//            'open' => true
-//        ];
 
-        foreach ($folders as $folder) {
-
+        foreach ($folderRepository->findAll() as $folder) {
             $jsonFiles = [];
 
             foreach ($folder->getFiles() as $file) {
-                /** @var FileInterface $file */
                 $jsonFiles[] = [
                     'id' => $file->getId(),
                     'name' => $file->getName(),
@@ -43,18 +28,14 @@ class MediaLibraryController extends AbstractController
                 ];
             }
 
-            if($folder->getParent() instanceof FolderInterface){
-                $parent = $folder->getParent()->getId();
-            } else {
-                $parent = $folder->getParent();
-            }
+            $parent = $folder->getParent();
 
             $json[] = [
                 'id' => $folder->getId(),
                 'type' => 'folder',
                 'name' => $folder->getName(),
-                'parent' => $parent,
-                'active'=> false,
+                'parent' => $parent instanceof FolderInterface ? $parent->getId() : $parent,
+                'active' => false,
                 'open' => false,
                 'files' => $jsonFiles
             ];

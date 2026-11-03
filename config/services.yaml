@@ -1,20 +1,13 @@
-parameters:
-
 services:
-    # default configuration for services in *this* file
     _defaults:
-        autowire: true      # Automatically injects dependencies in your services.
-        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        autowire: true
+        autoconfigure: true
 
-    # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
+    # Controllers, form type and entity repositories (ServiceEntityRepository).
     Golpilolz\MediaLibrary\:
         resource: '../src/'
         exclude:
             - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Model/'
             - '../src/GolpilolzMediaLibrary.php'
-
-    Golpilolz\MediaLibrary\Doctrine\FolderManager:
-        arguments:
-            $om: '@doctrine.orm.entity_manager'
-            $class: 'App\Entity\Folder'
