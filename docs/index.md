@@ -118,6 +118,34 @@ responds `{"result": "success", "id": 7}`), set by the `folder_url` form option.
 listener that calls `respondWith()` replaces it; with `folder_url` set to `null` and no listener,
 the folder only lives in the popup.
 
+### Endpoint errors
+
+The bundle's endpoints map their input with `#[MapRequestPayload]` / `#[MapUploadedFile]`
+(DTOs `Dto\AddFolderPayload` and `Dto\UploadPayload`), so a malformed request is rejected by
+Symfony before the controller runs:
+
+| Endpoint | Request | Status |
+|---|---|---|
+| both | body that can't be parsed, or upload without a `folder` field | 400 |
+| `POST /media-library/folders` | `Content-Type` other than JSON | 415 |
+| `POST /media-library/folders` | blank `name` (after trimming), `name` over 255 characters, non-integer `parent` | 422 |
+| `POST /media-library/upload` | missing or failed `file` (also for a non-multipart body), `folder` not a positive integer | 422 |
+
+Those errors use Symfony's error format. With `Accept: application/json` it's a problem
+details object, listing the failed fields under `violations` in a 422:
+
+```json
+{"type": "https://symfony.com/errors/validation", "title": "Validation Failed", "status": 422,
+ "detail": "name: This value should not be blank.", "violations": [{"propertyPath": "name", "title": "This value should not be blank.", …}]}
+```
+
+The checks the controller does itself respond with `{"result": "error", "message": "…"}`:
+an unknown parent folder or upload folder (400), an extension outside `allowed_extensions`
+(415), and a file that can't be moved to `upload_dir` (500).
+
+The popup only tells success from failure: on any error it shows its own message
+("Erreur lors de la création du dossier", "Erreur lors de l'envoi du fichier") and logs the details to the console.
+
 The bundle has no endpoints for rename / move / delete yet: those changes are only
 applied in the popup unless a listener persists them. A listener can make the popup wait by
 passing a promise to `event.detail.respondWith()`; if it rejects, the error is shown in the
