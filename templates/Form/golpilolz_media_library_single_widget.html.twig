@@ -1,51 +1,55 @@
 {% block golpilolz_media_library_single_widget %}
-    {%- set dataController = (attr['data-controller']|default('') ~ ' golpilolz--media-library--media-library')|trim -%}
-    {% set randid = random() %}
-        <div class="row" data-controller="{{ dataController }}">
-            <div class="col-md-12">
-                <div id="biblioimgcontainer{{ randid }}">
-                    {% if value is not empty %}
-                        {# {{ ipBblImageView(value,['img-thumbnail', 'img-preview']) }}  #}
-                    {% endif %}
-                </div>
-                <div id="ip_bibliotheque_action{{ randid }}"
-                     class="ip_bibliotheque_action btn-group {% if value is not empty %}ip_bbl_btn-group{% endif %}">
-                    {% if value is not empty %}
-                        <button type="button" id="ip_bibliotheque_add_image{{ randid }}" class="btn btn-primary">
-                            <i class="fa fa-edit"></i>
-                            Modifier
-                        </button>
-                        <button type="button" id="ip_bibliotheque_rm_image{{ randid }}" class="btn btn-danger">
-                            <i class="fa fa-trash"></i>
-                            Supprimer
-                        </button>
-                    {% else %}
-                        <button type="button" id="ip_bibliotheque_add_image{{ randid }}" class="btn btn-primary"
-                                data-golpilolz--media-library--media-library-target="showPopup">
-                            <i class="fa fa-plus"></i>
-                            Ajouter des images
-                        </button>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div id="popupBilbio" class="popup" data-golpilolz--media-library--media-library-target="popup"
-                 data-folder-url="{{ path('golpilolz_media-library_folders') }}">
-                <div class="golpilolz-media-library popup-content">
-                    <div class="pull-right">
-                        <button type="button" class="btn btn-sm btn-danger close-popup"
-                                data-golpilolz--media-library--media-library-target="closePopup">
-                            <span class="icon-cross"></span>
-                        </button>
-                    </div>
-                    <div id="loaderbiblio" class="loader-container"
-                         data-golpilolz--media-library--media-library-target="loader">
-                        <span class="loader"></span>
-                    </div>
-                    <div class="media-library-content"></div>
-                </div>
-            </div>
-            <input type="hidden" id="{{ form.vars.id }}" {{ block('widget_attributes') }}
-                   value="{% if value is not empty %}{{ value }}{% endif %}"/>
+    {%- set controller = 'golpilolz--media-library--media-library' -%}
+    {%- set dataController = (attr['data-controller']|default('') ~ ' ' ~ controller)|trim -%}
+    {%- set ids = value is iterable ? value : (value is empty ? [] : [value]) -%}
+    {%- set selected = form.vars.data is iterable ? form.vars.data : (form.vars.data is empty ? [] : [form.vars.data]) -%}
+    <div class="golpilolz-media-library-widget"
+         data-controller="{{ dataController }}"
+         data-{{ controller }}-folders-url-value="{{ path('golpilolz_media-library_folders') }}"
+         data-{{ controller }}-upload-url-value="{{ upload_url }}"
+         data-{{ controller }}-multiple-value="{{ multiple ? 'true' : 'false' }}">
+        <div class="golpilolz-media-library-preview" data-{{ controller }}-target="preview">
+            {%- for file in selected -%}
+                <span class="ml-preview-name">{{ file.name|default('') }}</span>
+            {%- endfor -%}
         </div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary"
+                    data-{{ controller }}-target="empty"
+                    data-action="{{ controller }}#open">
+                Ajouter des images
+            </button>
+            <button type="button" class="btn btn-primary" hidden
+                    data-{{ controller }}-target="filled"
+                    data-action="{{ controller }}#open">
+                Modifier
+            </button>
+            <button type="button" class="btn btn-danger" hidden
+                    data-{{ controller }}-target="filled"
+                    data-action="{{ controller }}#clear">
+                Supprimer
+            </button>
+        </div>
+
+        <div class="popup" data-{{ controller }}-target="popup">
+            <div class="golpilolz-media-library popup-content">
+                <button type="button" class="close-popup" aria-label="Fermer"
+                        data-action="{{ controller }}#close">
+                    <span class="icon-cross"></span>
+                </button>
+                <div class="loader-container" data-{{ controller }}-target="loader" hidden>
+                    <span class="loader"></span>
+                </div>
+                <div class="media-library-content" data-{{ controller }}-target="content"></div>
+            </div>
+        </div>
+
+        {%- for id in ids %}
+            <input type="hidden" {{ block('widget_attributes') }} value="{{ id }}"
+                   data-{{ controller }}-target="input"/>
+        {%- else %}
+            <input type="hidden" {{ block('widget_attributes') }} value=""
+                   data-{{ controller }}-target="input"/>
+        {%- endfor %}
+    </div>
 {% endblock golpilolz_media_library_single_widget %}

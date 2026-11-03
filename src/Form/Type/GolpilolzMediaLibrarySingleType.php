@@ -23,7 +23,8 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         $view->vars = array_replace($view->vars, [
-            'prefix' => $this->prefix
+            'prefix' => $this->prefix,
+            'upload_url' => $options['upload_url'] ?? '',
         ]);
     }
 
@@ -33,9 +34,12 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'prefix' => ''
+            'prefix' => '',
+            // URL receiving Dropzone uploads (drag & drop into the library). Upload is disabled when null.
+            'upload_url' => null,
         ]);
         $resolver->setAllowedTypes('prefix', ['string']);
+        $resolver->setAllowedTypes('upload_url', ['null', 'string']);
     }
 
     public function getParent(): string

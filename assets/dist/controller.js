@@ -1,167 +1,880 @@
 'use strict';
 
-function _createForOfIteratorHelperLoose(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (it) return (it = it.call(o)).next.bind(it); if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; return function () { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
-function _inheritsLoose(subClass, superClass) { subClass.prototype = Object.create(superClass.prototype); subClass.prototype.constructor = subClass; _setPrototypeOf(subClass, superClass); }
-function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
-function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
-function _possibleConstructorReturn(self, call) { if (call && (typeof call === "object" || typeof call === "function")) { return call; } else if (call !== void 0) { throw new TypeError("Derived constructors may only return object or undefined"); } return _assertThisInitialized(self); }
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
-function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
-function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 import { Controller } from '@hotwired/stimulus';
-var _default = /*#__PURE__*/function (_Controller) {
-  _inheritsLoose(_default, _Controller);
-  var _super = _createSuper(_default);
-  function _default() {
-    return _super.apply(this, arguments);
+var ROOT = 0;
+var EVENT_PREFIX = 'golpilolz_media-library';
+var IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'];
+var ICONS = {
+  pdf: ['pdf'],
+  doc: ['doc', 'docx', 'odt', 'rtf'],
+  xls: ['xls', 'xlsx', 'ods', 'csv'],
+  zip: ['zip', 'rar', '7z', 'gz', 'tar']
+};
+var LANG = {
+  root: 'Accueil',
+  search: 'Rechercher un fichier',
+  sortAsc: 'Trier de A à Z',
+  sortDesc: 'Trier de Z à A',
+  openFolder: 'Ouvrir le dossier',
+  zoom: 'Agrandir',
+  validate: 'Valider la sélection',
+  label: 'Libellé',
+  cancel: 'Annuler',
+  rename: 'Renommer',
+  move: 'Déplacer',
+  delete: 'Supprimer',
+  add: 'Ajouter',
+  newFolder: 'Nouveau dossier',
+  titleRenameFile: 'Renommer le fichier',
+  titleRenameFolder: 'Renommer le dossier',
+  titleAddFolder: 'Ajouter un dossier',
+  titleMoveFile: 'Déplacer le fichier',
+  titleDeleteFile: 'Supprimer le fichier ?',
+  confirmDeleteFile: 'Êtes-vous sûr de vouloir supprimer le fichier :',
+  emptyLabel: 'Veuillez entrer un libellé',
+  emptyTarget: 'Veuillez choisir un dossier',
+  errorAddFolder: 'Erreur lors de la création du dossier',
+  errorAction: 'Une erreur est survenue',
+  errorUpload: "Erreur lors de l'envoi du fichier",
+  successRenameFile: 'Le fichier a bien été renommé',
+  successRenameFolder: 'Le dossier a bien été renommé',
+  successUploadFile: 'Le fichier a bien été envoyé',
+  successMoveFile: 'Le fichier a bien été déplacé',
+  successDeleteFile: 'Le fichier a bien été supprimé'
+};
+var escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+var extension = url => {
+  var path = url.split(/[?#]/)[0];
+  var dot = path.lastIndexOf('.');
+  return dot === -1 ? '' : path.slice(dot + 1).toLowerCase();
+};
+var isImage = file => IMAGE_EXTENSIONS.includes(extension(file.url));
+var iconFor = file => {
+  var ext = extension(file.url);
+  for (var [icon, extensions] of Object.entries(ICONS)) {
+    if (extensions.includes(ext)) {
+      return icon;
+    }
   }
-  var _proto = _default.prototype;
-  _proto.connect = function connect() {
-    var _this = this;
-    this.activeFolder = 0;
-    this.clear();
-    this.showPopupTarget.addEventListener('click', function (event) {
-      return _this.onShowPopup(event);
-    });
-    this.closePopupTarget.addEventListener('click', function (event) {
-      return _this.onClosePopup(event);
-    });
+  return 'txt';
+};
+var byName = asc => (a, b) => (asc ? 1 : -1) * a.name.localeCompare(b.name, undefined, {
+  sensitivity: 'base',
+  numeric: true
+});
+export default class _class extends Controller {
+  constructor() {
+    super(...arguments);
+    this.folders = [];
+    this.activeFolderId = ROOT;
+    this.openFolderIds = new Set();
+    this.selectedFileIds = new Set();
+    this.highlightedFolderId = null;
+    this.sortAsc = true;
+    this.rendered = false;
+    this.abort = null;
+    this.dropzone = null;
+    // Bumped by every open()/close(): an open() whose await resumes after a newer
+    // open() or a close() must stop, or it would re-render or attach a second Dropzone.
+    this.session = 0;
+  }
+  connect() {
+    this.toggleButtons();
     this.dispatchEvent('connect');
-  };
-  _proto.clear = function clear() {
-    /*this.inputTarget.value = '';
-    this.inputTarget.style.display = 'block';
-    this.placeholderTarget.style.display = 'block';
-    this.previewTarget.style.display = 'none';
-    this.previewImageTarget.style.display = 'none';
-    this.previewImageTarget.style.backgroundImage = 'none';
-    this.previewFilenameTarget.textContent = '';*/
+  }
+  disconnect() {
+    this.teardown();
+  }
 
-    this.dispatchEvent('clear');
-  };
-  _proto.getChildFolder = function getChildFolder(parent) {
-    var child = [];
-    for (var _iterator = _createForOfIteratorHelperLoose(this.folders), _step; !(_step = _iterator()).done;) {
-      var folder = _step.value;
-      if (folder.parent === parent) child.push(folder);
-    }
-    return child;
-  };
-  _proto.getFiles = function getFiles(parent) {
-    if (parent === 0) {
-      return [];
-    }
-    var files = [];
-    var folder = this.folders.find(function (folder) {
-      return folder.id === parent;
-    });
-    if (folder === undefined) {
-      return [];
-    }
-    return folder.files;
-  };
-  _proto.onShowPopup = function onShowPopup(event) {
-    var _this2 = this;
-    this.popupTarget.classList.add('show');
-    var url = this.popupTarget.dataset.folderUrl;
-    this.initInterface();
-    fetch(url).then(function (response) {
-      return response.json();
-    }).then(function (data) {
-      _this2.loaderTarget.style.display = 'none';
-      _this2.folders = data;
-      _this2.show();
-    });
-    this.dispatchEvent('showPopup');
-  };
-  _proto.onClosePopup = function onClosePopup(event) {
-    this.popupTarget.classList.remove('show');
-    this.dispatchEvent('closePopup');
-  };
-  _proto.initInterface = function initInterface() {
-    for (var _iterator2 = _createForOfIteratorHelperLoose(this.constructor.elements), _step2; !(_step2 = _iterator2()).done;) {
-      var element = _step2.value;
-      var div = document.createElement('div');
-      div.classList.add('content-div');
-      for (var _iterator3 = _createForOfIteratorHelperLoose(element), _step3; !(_step3 = _iterator3()).done;) {
-        var target = _step3.value;
-        div.innerHTML += this.constructor.templates[target];
+  // ---- Stimulus actions ------------------------------------------------
+
+  open() {
+    var _this = this;
+    return _asyncToGenerator(function* () {
+      var session = ++_this.session;
+      _this.popupTarget.classList.add('show');
+      _this.loaderTarget.hidden = false;
+      _this.selectedFileIds = new Set(_this.inputValues());
+      if (!_this.rendered) {
+        _this.contentTarget.innerHTML = _this.layoutTemplate();
+        _this.bindEvents();
+        _this.rendered = true;
       }
-      var contentBodies = this.popupTarget.getElementsByClassName('media-library-content');
-      contentBodies.item(0).appendChild(div);
+      var folders = null;
+      try {
+        folders = yield _this.fetchFolders();
+      } catch (error) {
+        console.error(error);
+      }
+      if (session !== _this.session) {
+        return;
+      }
+      _this.loaderTarget.hidden = true;
+      if (folders === null) {
+        _this.alert(LANG.errorAction, 'danger');
+      } else {
+        _this.setFolders(folders);
+      }
+      _this.render();
+      yield _this.initDropzone(session);
+      _this.dispatchEvent('showPopup');
+    })();
+  }
+  close() {
+    this.session++;
+    this.popupTarget.classList.remove('show');
+    this.closeContextMenu();
+    this.destroyDropzone();
+    this.dispatchEvent('closePopup');
+  }
+  clear() {
+    this.writeValue([]);
+    this.dispatchEvent('clear');
+  }
+
+  // ---- Data ------------------------------------------------------------
+
+  fetchFolders() {
+    var _this2 = this;
+    return _asyncToGenerator(function* () {
+      var response = yield fetch(_this2.foldersUrlValue, {
+        headers: {
+          Accept: 'application/json'
+        }
+      });
+      if (!response.ok) {
+        throw new Error(response.status + " " + response.statusText);
+      }
+      return response.json();
+    })();
+  }
+  setFolders(folders) {
+    this.folders = folders.map(folder => {
+      var _folder$parent, _folder$files;
+      return _extends({}, folder, {
+        parent: (_folder$parent = folder.parent) != null ? _folder$parent : ROOT,
+        files: (_folder$files = folder.files) != null ? _folder$files : []
+      });
+    });
+    var active = this.folders.find(folder => folder.active);
+    if (active) {
+      this.activeFolderId = active.id;
+    } else if (!this.getFolder(this.activeFolderId)) {
+      this.activeFolderId = ROOT;
     }
-  };
-  _proto.show = function show() {
-    this.drawTree();
-    this.drawContent();
-    this.dispatchEvent('show');
-  };
-  _proto.drawTree = function drawTree() {
-    var tree = document.getElementById('tree');
-    var ul = document.createElement('ul');
-    for (var _iterator4 = _createForOfIteratorHelperLoose(this.folders), _step4; !(_step4 = _iterator4()).done;) {
-      var folder = _step4.value;
-      var li = document.createElement('li');
-      li.innerHTML = "<li class=\"folder\" data-folder-id=\"" + folder.id + "\"><span class=\"icon-folder\"></span>" + folder.name + "</li>";
-      ul.appendChild(li);
+    for (var folder of this.folders) {
+      if (folder.open) {
+        this.openFolderIds.add(folder.id);
+      }
     }
-    tree.appendChild(ul);
-  };
-  _proto.drawContent = function drawContent() {
-    var content = document.getElementById('content');
-    var folders = this.getChildFolder(this.activeFolder);
-    var contentDiv = document.createElement('div');
-    for (var _iterator5 = _createForOfIteratorHelperLoose(folders), _step5; !(_step5 = _iterator5()).done;) {
-      var folder = _step5.value;
-      var div = document.createElement('div');
-      div.innerHTML = "<div class=\"folder\"><span class=\"icon-folder\"></span>" + folder.name + "</div>";
-      div.setAttribute('title', folder.name);
-      div.setAttribute('id', folder.id);
-      contentDiv.appendChild(div);
+    this.openAncestors(this.activeFolderId);
+  }
+  getFolder(id) {
+    return this.folders.find(folder => folder.id === id);
+  }
+  getChildFolders(parent) {
+    return this.folders.filter(folder => folder.parent === parent);
+  }
+  getFile(id) {
+    for (var folder of this.folders) {
+      var _folder$files2;
+      var file = (_folder$files2 = folder.files) == null ? void 0 : _folder$files2.find(file => file.id === id);
+      if (file) {
+        return file;
+      }
     }
-    var files = this.getFiles(this.activeFolder);
-    for (var _iterator6 = _createForOfIteratorHelperLoose(files), _step6; !(_step6 = _iterator6()).done;) {
-      var file = _step6.value;
-      var _div = document.createElement('div');
-      _div.innerHTML = "<div class=\"file\"><div data-bbl-img></div><span class=\"title\">" + file.name + "</span></div>";
-      _div.setAttribute('title', file.name);
-      _div.setAttribute('id', file.id);
-      contentDiv.appendChild(_div);
+    return undefined;
+  }
+  getFileFolder(id) {
+    return this.folders.find(folder => {
+      var _folder$files3;
+      return (_folder$files3 = folder.files) == null ? void 0 : _folder$files3.some(file => file.id === id);
+    });
+  }
+  openAncestors(id) {
+    var folder = this.getFolder(id);
+    while (folder && folder.parent !== ROOT) {
+      this.openFolderIds.add(folder.parent);
+      folder = this.getFolder(folder.parent);
     }
-    content.appendChild(contentDiv);
-  };
-  _proto.dispatchEvent = function dispatchEvent(name, payload) {
+  }
+
+  // ---- Rendering -------------------------------------------------------
+
+  layoutTemplate() {
+    var lastButton = this.multipleValue ? "<button type=\"button\" class=\"ml-btn\" data-ml-action=\"validate\" title=\"" + LANG.validate + "\">\u2713</button>" : "<button type=\"button\" class=\"ml-btn\" data-ml-action=\"zoom\" title=\"" + LANG.zoom + "\"><span class=\"icon-zoom-in\"></span></button>";
+    return "\n            <div class=\"ml-toolbar\">\n                <div class=\"ml-btn-group\">\n                    <button type=\"button\" class=\"ml-btn active\" data-ml-action=\"sort-asc\" title=\"" + LANG.sortAsc + "\"><span class=\"icon-sort-alpha-asc\"></span></button>\n                    <button type=\"button\" class=\"ml-btn\" data-ml-action=\"sort-desc\" title=\"" + LANG.sortDesc + "\"><span class=\"icon-sort-alpha-desc\"></span></button>\n                </div>\n                <div class=\"ml-btn-group\">\n                    <button type=\"button\" class=\"ml-btn\" data-ml-action=\"open-folder\" title=\"" + LANG.openFolder + "\"><span class=\"icon-folder-open\"></span></button>\n                </div>\n                <div class=\"ml-btn-group\">" + lastButton + "</div>\n                <input type=\"search\" class=\"ml-search\" placeholder=\"" + LANG.search + "\" aria-label=\"" + LANG.search + "\">\n            </div>\n            <div class=\"ml-body\">\n                <nav class=\"ml-tree\"></nav>\n                <div class=\"ml-content\" tabindex=\"-1\"></div>\n            </div>\n            <div class=\"ml-infos\"></div>\n            <div class=\"ml-alerts\" aria-live=\"polite\"></div>\n            <div class=\"ml-context-menu\" role=\"menu\" hidden></div>\n            <dialog class=\"ml-zoom\"><img alt=\"\"></dialog>\n            <dialog class=\"ml-dialog\"></dialog>";
+  }
+  render() {
+    this.renderTree();
+    this.renderContent();
+  }
+  renderTree() {
+    var tree = this.find('.ml-tree');
+    var branch = parent => {
+      var children = this.getChildFolders(parent).sort(byName(true));
+      if (children.length === 0) {
+        return '';
+      }
+      return "<ul>" + children.map(folder => {
+        var hasChildren = this.getChildFolders(folder.id).length > 0;
+        var open = this.openFolderIds.has(folder.id);
+        var classes = ['ml-tree-item', open ? 'open' : '', folder.id === this.activeFolderId ? 'active' : ''].join(' ');
+        return "<li class=\"" + classes + "\" data-folder-id=\"" + folder.id + "\">\n                    " + (hasChildren ? "<span class=\"ml-expand\" data-ml-action=\"toggle\">" + (open ? '▾' : '▸') + "</span>" : '<span class="ml-expand"></span>') + "\n                    <span class=\"ml-tree-label\" data-ml-action=\"navigate\"><span class=\"" + (open ? 'icon-folder-open' : 'icon-folder') + "\"></span> " + escapeHtml(folder.name) + "</span>\n                    " + (hasChildren ? branch(folder.id) : '') + "\n                </li>";
+      }).join('') + "</ul>";
+    };
+    tree.innerHTML = "<ul><li class=\"ml-tree-item open " + (this.activeFolderId === ROOT ? 'active' : '') + "\" data-folder-id=\"" + ROOT + "\">\n            <span class=\"ml-expand\"></span>\n            <span class=\"ml-tree-label\" data-ml-action=\"navigate\"><span class=\"icon-folder-open\"></span> " + LANG.root + "</span>\n            " + branch(ROOT) + "\n        </li></ul>";
+  }
+  renderContent() {
+    var _this$getFolder$files, _this$getFolder;
+    var content = this.find('.ml-content');
+    var folders = this.getChildFolders(this.activeFolderId).sort(byName(this.sortAsc));
+    var files = [...((_this$getFolder$files = (_this$getFolder = this.getFolder(this.activeFolderId)) == null ? void 0 : _this$getFolder.files) != null ? _this$getFolder$files : [])].sort(byName(this.sortAsc));
+    this.highlightedFolderId = null;
+    this.find('.ml-search').value = '';
+    content.innerHTML = folders.map(folder => "\n            <div class=\"ml-item ml-folder\" data-folder-id=\"" + folder.id + "\" title=\"" + escapeHtml(folder.name) + "\">\n                <span class=\"ml-folder-icon icon-folder\"></span>\n                <span class=\"ml-title\">" + escapeHtml(folder.name) + "</span>\n            </div>").join('') + files.map(file => "\n            <div class=\"ml-item ml-file " + (this.selectedFileIds.has(file.id) ? 'active' : '') + "\" data-file-id=\"" + file.id + "\" title=\"" + escapeHtml(file.name) + "\">\n                <div class=\"ml-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">\n                    " + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "\n                </div>\n                <span class=\"ml-title\">" + escapeHtml(file.name) + "</span>\n            </div>").join('');
+  }
+
+  // ---- Events ----------------------------------------------------------
+
+  bindEvents() {
+    this.abort = new AbortController();
+    var signal = this.abort.signal;
+    var root = this.contentTarget;
+    root.addEventListener('click', event => this.onClick(event), {
+      signal
+    });
+    root.addEventListener('dblclick', event => this.onDblClick(event), {
+      signal
+    });
+    root.addEventListener('contextmenu', event => this.onContextMenu(event), {
+      signal
+    });
+    // Enter in the search box must not submit the surrounding Symfony form.
+    root.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && event.target.matches('.ml-search')) {
+        event.preventDefault();
+      }
+    }, {
+      signal
+    });
+    root.addEventListener('input', event => {
+      if (event.target.matches('.ml-search')) {
+        this.filter(event.target.value);
+      }
+    }, {
+      signal
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.ml-context-menu')) {
+        this.closeContextMenu();
+      }
+    }, {
+      signal
+    });
+    document.addEventListener('keydown', event => this.onKeydown(event), {
+      signal
+    });
+    this.find('.ml-content').addEventListener('scroll', () => this.closeContextMenu(), {
+      signal
+    });
+    this.find('.ml-zoom').addEventListener('click', event => event.currentTarget.close(), {
+      signal
+    });
+  }
+  teardown() {
+    var _this$abort;
+    this.session++;
+    (_this$abort = this.abort) == null || _this$abort.abort();
+    this.abort = null;
+    this.destroyDropzone();
+    this.rendered = false;
+  }
+  onClick(event) {
+    var _target$closest;
+    var target = event.target;
+    var action = (_target$closest = target.closest('[data-ml-action]')) == null ? void 0 : _target$closest.dataset.mlAction;
+    var treeItem = target.closest('.ml-tree-item');
+    switch (action) {
+      case 'sort-asc':
+      case 'sort-desc':
+        this.sortAsc = action === 'sort-asc';
+        this.findAll('[data-ml-action^="sort-"]').forEach(button => button.classList.toggle('active', button.dataset.mlAction === action));
+        this.renderContent();
+        return;
+      case 'open-folder':
+        if (this.highlightedFolderId !== null) {
+          this.navigate(this.highlightedFolderId);
+        }
+        return;
+      case 'zoom':
+        this.zoom();
+        return;
+      case 'validate':
+        this.select([...this.selectedFileIds]);
+        return;
+      case 'toggle':
+        this.toggleFolder(Number(treeItem.dataset.folderId));
+        return;
+      case 'navigate':
+        this.navigate(Number(treeItem.dataset.folderId));
+        return;
+    }
+    if (!target.closest('.ml-content')) {
+      return;
+    }
+    var folder = target.closest('.ml-folder');
+    var file = target.closest('.ml-file');
+    if (folder) {
+      this.highlight(folder);
+      this.highlightedFolderId = Number(folder.dataset.folderId);
+    } else if (file) {
+      this.toggleFile(file);
+    } else {
+      this.findAll('.ml-content .ml-item.active').forEach(item => item.classList.remove('active'));
+      this.highlightedFolderId = null;
+      this.selectedFileIds.clear();
+    }
+  }
+  onDblClick(event) {
+    var target = event.target;
+    var folder = target.closest('.ml-content .ml-folder');
+    var file = target.closest('.ml-content .ml-file');
+    if (folder) {
+      this.navigate(Number(folder.dataset.folderId));
+    } else if (file && !this.multipleValue) {
+      this.select([Number(file.dataset.fileId)]);
+    }
+  }
+  onKeydown(event) {
+    if (event.key !== 'Escape' || !this.popupTarget.classList.contains('show')) {
+      return;
+    }
+    // Open <dialog>s handle Escape themselves.
+    if (this.contentTarget.querySelector('dialog[open]')) {
+      return;
+    }
+    if (!this.find('.ml-context-menu').hidden) {
+      this.closeContextMenu();
+      return;
+    }
+    this.close();
+  }
+  highlight(item) {
+    this.findAll('.ml-content .ml-folder.active').forEach(other => other.classList.remove('active'));
+    if (!this.multipleValue) {
+      this.findAll('.ml-content .ml-item.active').forEach(other => other.classList.remove('active'));
+      this.selectedFileIds.clear();
+    }
+    item.classList.add('active');
+  }
+  toggleFile(item) {
+    var id = Number(item.dataset.fileId);
+    if (this.multipleValue) {
+      item.classList.toggle('active');
+      item.classList.contains('active') ? this.selectedFileIds.add(id) : this.selectedFileIds.delete(id);
+      return;
+    }
+    this.highlight(item);
+    this.highlightedFolderId = null;
+    this.selectedFileIds = new Set([id]);
+  }
+  navigate(id) {
+    this.activeFolderId = id;
+    this.openAncestors(id);
+    if (id !== ROOT) {
+      this.openFolderIds.add(id);
+    }
+    this.render();
+  }
+  toggleFolder(id) {
+    this.openFolderIds.has(id) ? this.openFolderIds.delete(id) : this.openFolderIds.add(id);
+    this.renderTree();
+  }
+  filter(search) {
+    var needle = search.trim().toLocaleUpperCase();
+    this.findAll('.ml-content .ml-item').forEach(item => {
+      var _item$querySelector$t, _item$querySelector;
+      var title = (_item$querySelector$t = (_item$querySelector = item.querySelector('.ml-title')) == null ? void 0 : _item$querySelector.textContent) != null ? _item$querySelector$t : '';
+      item.hidden = needle !== '' && !title.toLocaleUpperCase().includes(needle);
+    });
+  }
+  zoom() {
+    var id = [...this.selectedFileIds][0];
+    var file = id === undefined ? undefined : this.getFile(id);
+    if (!file || !isImage(file)) {
+      return;
+    }
+    var dialog = this.find('.ml-zoom');
+    dialog.querySelector('img').src = file.url;
+    dialog.showModal();
+  }
+
+  // ---- Selection / form value -----------------------------------------
+
+  select(ids) {
+    var files = ids.map(id => this.getFile(id)).filter(file => file !== undefined);
+    if (files.length === 0) {
+      return;
+    }
+    this.writeValue(files.map(file => file.id), files);
+    this.dispatchEvent('select', {
+      files
+    });
+    this.close();
+  }
+  inputValues() {
+    return this.inputTargets.map(input => input.value).filter(value => value !== '').map(Number);
+  }
+
+  // Single: one hidden input. Multiple: one hidden input per id (name ends with []).
+  writeValue(ids, files) {
+    if (files === void 0) {
+      files = [];
+    }
+    var [first, ...extra] = this.inputTargets;
+    extra.forEach(input => input.remove());
+    first.value = ids.length > 0 ? String(ids[0]) : '';
+    var previous = first;
+    for (var id of ids.slice(1)) {
+      var input = first.cloneNode();
+      input.removeAttribute('id');
+      input.value = String(id);
+      previous.after(input);
+      previous = input;
+    }
+    first.dispatchEvent(new Event('change', {
+      bubbles: true
+    }));
+    if (this.hasPreviewTarget) {
+      this.previewTarget.innerHTML = files.map(file => isImage(file) ? "<img class=\"ml-preview-img\" src=\"" + escapeHtml(file.url) + "\" alt=\"" + escapeHtml(file.name) + "\">" : "<span class=\"ml-preview-name\">" + escapeHtml(file.name) + "</span>").join('');
+    }
+    this.toggleButtons();
+  }
+  toggleButtons() {
+    var filled = this.inputValues().length > 0;
+    this.emptyTargets.forEach(element => element.hidden = filled);
+    this.filledTargets.forEach(element => element.hidden = !filled);
+  }
+
+  // ---- Context menu ----------------------------------------------------
+
+  onContextMenu(event) {
+    var _menu$querySelector;
+    var target = event.target;
+    if (!target.closest('.ml-content')) {
+      return;
+    }
+    event.preventDefault();
+    var folderElement = target.closest('.ml-folder');
+    var fileElement = target.closest('.ml-file');
+    var items;
+    if (folderElement) {
+      var folder = this.getFolder(Number(folderElement.dataset.folderId));
+      items = [{
+        label: LANG.rename,
+        action: () => this.renameFolder(folder)
+      }];
+    } else if (fileElement) {
+      var file = this.getFile(Number(fileElement.dataset.fileId));
+      items = [{
+        label: LANG.rename,
+        action: () => this.renameFile(file)
+      }, {
+        label: LANG.move,
+        action: () => this.moveFile(file)
+      }, {
+        label: LANG.delete,
+        action: () => this.deleteFile(file)
+      }];
+    } else {
+      items = [{
+        label: LANG.newFolder,
+        action: () => this.addFolder()
+      }];
+    }
+    var menu = this.find('.ml-context-menu');
+    menu.innerHTML = items.map((item, index) => "<button type=\"button\" role=\"menuitem\" class=\"ml-context-item\" data-index=\"" + index + "\">" + escapeHtml(item.label) + "</button>").join('');
+    menu.querySelectorAll('.ml-context-item').forEach(button => {
+      button.addEventListener('click', () => {
+        this.closeContextMenu();
+        items[Number(button.dataset.index)].action();
+      });
+    });
+    menu.hidden = false;
+
+    // Keep the menu inside the viewport.
+    var {
+      innerWidth,
+      innerHeight
+    } = window;
+    var {
+      width,
+      height
+    } = menu.getBoundingClientRect();
+    menu.style.left = Math.min(event.clientX, innerWidth - width - 4) + "px";
+    menu.style.top = Math.min(event.clientY, innerHeight - height - 4) + "px";
+    (_menu$querySelector = menu.querySelector('button')) == null || _menu$querySelector.focus();
+  }
+  closeContextMenu() {
+    var menu = this.contentTarget.querySelector('.ml-context-menu');
+    if (menu) {
+      menu.hidden = true;
+    }
+  }
+
+  // ---- Actions with dialogs -------------------------------------------
+  //
+  // Each action dispatches an event (e.g. "golpilolz_media-library:rename-file").
+  // A listener can persist the change by calling event.detail.respondWith(promise):
+  // the dialog waits for it and keeps the change local only once it resolves.
+
+  labelForm(value) {
+    if (value === void 0) {
+      value = '';
+    }
+    return "<label class=\"ml-label\">" + LANG.label + "\n            <input type=\"text\" class=\"ml-input\" name=\"title\" value=\"" + escapeHtml(value) + "\" required autofocus>\n        </label>";
+  }
+  readTitle(dialog) {
+    var title = dialog.querySelector('[name="title"]').value.trim();
+    if (title === '') {
+      throw new Error(LANG.emptyLabel);
+    }
+    return title;
+  }
+  renameFile(file) {
+    var _this3 = this;
+    this.dialog(LANG.titleRenameFile, this.labelForm(file.name), [{
+      label: LANG.cancel
+    }, {
+      label: LANG.rename,
+      className: 'ml-btn-primary',
+      action: function () {
+        var _action = _asyncToGenerator(function* (dialog) {
+          var name = _this3.readTitle(dialog);
+          yield _this3.emit('rename-file', {
+            file,
+            name
+          });
+          file.name = name;
+          _this3.renderContent();
+          _this3.alert(LANG.successRenameFile);
+        });
+        function action(_x) {
+          return _action.apply(this, arguments);
+        }
+        return action;
+      }()
+    }]);
+  }
+  renameFolder(folder) {
+    var _this4 = this;
+    this.dialog(LANG.titleRenameFolder, this.labelForm(folder.name), [{
+      label: LANG.cancel
+    }, {
+      label: LANG.rename,
+      className: 'ml-btn-primary',
+      action: function () {
+        var _action2 = _asyncToGenerator(function* (dialog) {
+          var name = _this4.readTitle(dialog);
+          yield _this4.emit('rename-folder', {
+            folder,
+            name
+          });
+          folder.name = name;
+          _this4.render();
+          _this4.alert(LANG.successRenameFolder);
+        });
+        function action(_x2) {
+          return _action2.apply(this, arguments);
+        }
+        return action;
+      }()
+    }]);
+  }
+  addFolder() {
+    var _this5 = this;
+    var parent = this.activeFolderId;
+    this.dialog(LANG.titleAddFolder, this.labelForm(), [{
+      label: LANG.cancel
+    }, {
+      label: LANG.add,
+      className: 'ml-btn-primary',
+      action: function () {
+        var _action3 = _asyncToGenerator(function* (dialog) {
+          var _response$id, _response;
+          var name = _this5.readTitle(dialog);
+          var response;
+          try {
+            var _this5$getFolder;
+            response = yield _this5.emit('add-folder', {
+              parent: (_this5$getFolder = _this5.getFolder(parent)) != null ? _this5$getFolder : null,
+              name
+            });
+          } catch (error) {
+            console.error(error);
+            throw new Error(LANG.errorAddFolder);
+          }
+          // Without a backend id, use a temporary negative one.
+          var id = (_response$id = (_response = response) == null ? void 0 : _response.id) != null ? _response$id : Math.min(0, ..._this5.folders.map(folder => folder.id)) - 1;
+          _this5.folders.push({
+            id,
+            name,
+            type: 'folder',
+            parent,
+            active: false,
+            open: false,
+            files: []
+          });
+          _this5.render();
+        });
+        function action(_x3) {
+          return _action3.apply(this, arguments);
+        }
+        return action;
+      }()
+    }]);
+  }
+  moveFile(file) {
+    var _this6 = this;
+    var source = this.getFileFolder(file.id);
+    var branch = parent => {
+      var children = this.getChildFolders(parent).sort(byName(true));
+      return children.length === 0 ? '' : "<ul>" + children.map(folder => "<li>\n                <label class=\"ml-move-folder\">\n                    <input type=\"radio\" name=\"target\" value=\"" + folder.id + "\" " + (folder.id === (source == null ? void 0 : source.id) ? 'disabled' : '') + ">\n                    <span class=\"icon-folder\"></span> " + escapeHtml(folder.name) + "\n                </label>\n                " + branch(folder.id) + "\n            </li>").join('') + "</ul>";
+    };
+    this.dialog(LANG.titleMoveFile, "<div class=\"ml-move-list\">" + branch(ROOT) + "</div>", [{
+      label: LANG.cancel
+    }, {
+      label: LANG.move,
+      className: 'ml-btn-primary',
+      action: function () {
+        var _action4 = _asyncToGenerator(function* (dialog) {
+          var _target$files;
+          var checked = dialog.querySelector('[name="target"]:checked');
+          if (!checked) {
+            throw new Error(LANG.emptyTarget);
+          }
+          var target = _this6.getFolder(Number(checked.value));
+          yield _this6.emit('move-file', {
+            file,
+            folder: target
+          });
+          if (source) {
+            source.files = source.files.filter(other => other.id !== file.id);
+          }
+          target.files = [...((_target$files = target.files) != null ? _target$files : []), file];
+          _this6.renderContent();
+          _this6.alert(LANG.successMoveFile);
+        });
+        function action(_x4) {
+          return _action4.apply(this, arguments);
+        }
+        return action;
+      }()
+    }]);
+  }
+  deleteFile(file) {
+    var _this7 = this;
+    this.dialog(LANG.titleDeleteFile, "<p>" + LANG.confirmDeleteFile + " <strong>" + escapeHtml(file.name) + "</strong></p>", [{
+      label: LANG.cancel
+    }, {
+      label: LANG.delete,
+      className: 'ml-btn-danger',
+      action: function () {
+        var _action5 = _asyncToGenerator(function* () {
+          yield _this7.emit('delete-file', {
+            file
+          });
+          var folder = _this7.getFileFolder(file.id);
+          if (folder) {
+            folder.files = folder.files.filter(other => other.id !== file.id);
+          }
+          _this7.selectedFileIds.delete(file.id);
+          _this7.renderContent();
+          _this7.alert(LANG.successDeleteFile);
+        });
+        function action() {
+          return _action5.apply(this, arguments);
+        }
+        return action;
+      }()
+    }]);
+  }
+  dialog(title, body, buttons) {
+    // No <form> here: the widget usually sits inside the page's Symfony form, where a nested
+    // <form> is dropped by the HTML parser. All buttons are type="button" for the same reason.
+    var dialog = this.find('.ml-dialog');
+    dialog.innerHTML = "<div class=\"ml-dialog-form\">\n            <header class=\"ml-dialog-title\">" + escapeHtml(title) + "</header>\n            <div class=\"ml-dialog-body\">" + body + "</div>\n            <p class=\"ml-dialog-error\" hidden></p>\n            <footer class=\"ml-dialog-buttons\">" + buttons.map((button, index) => {
+      var _button$className;
+      return "<button type=\"button\" class=\"ml-btn " + ((_button$className = button.className) != null ? _button$className : '') + "\" data-index=\"" + index + "\">" + escapeHtml(button.label) + "</button>";
+    }).join('') + "\n            </footer>\n        </div>";
+    var error = dialog.querySelector('.ml-dialog-error');
+    var run = /*#__PURE__*/function () {
+      var _ref = _asyncToGenerator(function* (button, element) {
+        error.hidden = true;
+        element.disabled = true;
+        try {
+          if (button.action && (yield button.action(dialog)) === false) {
+            return;
+          }
+          dialog.close();
+        } catch (e) {
+          error.textContent = e instanceof Error ? e.message : LANG.errorAction;
+          error.hidden = false;
+        } finally {
+          element.disabled = false;
+        }
+      });
+      return function run(_x5, _x6) {
+        return _ref.apply(this, arguments);
+      };
+    }();
+    var elements = [...dialog.querySelectorAll('.ml-dialog-buttons button')];
+    elements.forEach(element => {
+      element.addEventListener('click', () => run(buttons[Number(element.dataset.index)], element));
+    });
+    // Enter in an input triggers the last (primary) button.
+    dialog.querySelector('.ml-dialog-body').addEventListener('keydown', event => {
+      if (event.key === 'Enter' && event.target.matches('input')) {
+        event.preventDefault();
+        var primary = elements[elements.length - 1];
+        if (!primary.disabled) {
+          run(buttons[buttons.length - 1], primary);
+        }
+      }
+    });
+    dialog.showModal();
+  }
+
+  // ---- Upload (Dropzone) ----------------------------------------------
+
+  initDropzone(session) {
+    var _this8 = this;
+    return _asyncToGenerator(function* () {
+      if (_this8.uploadUrlValue === '' || _this8.dropzone) {
+        return;
+      }
+      var {
+        default: Dropzone
+      } = yield import('dropzone');
+      if (session !== _this8.session || _this8.dropzone) {
+        return;
+      }
+      var targetFolderId = _this8.activeFolderId;
+      var dropzone = new Dropzone(_this8.find('.ml-content'), {
+        url: _this8.uploadUrlValue,
+        previewsContainer: _this8.find('.ml-infos'),
+        clickable: false,
+        resizeWidth: 1920,
+        previewTemplate: "<div class=\"dz-preview dz-file-preview\">\n                <div class=\"dz-details\"><img data-dz-thumbnail alt=\"\"><span class=\"dz-filename\" data-dz-name></span></div>\n                <div class=\"dz-progress\"><span class=\"dz-upload\" data-dz-uploadprogress></span></div>\n            </div>"
+      });
+      dropzone.on('drop', event => {
+        var folder = event.target.closest('.ml-folder');
+        targetFolderId = folder ? Number(folder.dataset.folderId) : _this8.activeFolderId;
+      });
+      dropzone.on('sending', (file, xhr, formData) => {
+        var _this8$getFolder;
+        formData.append('folder', String(targetFolderId));
+        _this8.dispatchEvent('upload-sending', {
+          file,
+          folder: (_this8$getFolder = _this8.getFolder(targetFolderId)) != null ? _this8$getFolder : null,
+          xhr,
+          formData
+        });
+      });
+      dropzone.on('success', (file, json) => {
+        if ((json == null ? void 0 : json.result) !== 'success') {
+          console.error(json);
+          _this8.alert(LANG.errorUpload, 'danger');
+          return;
+        }
+        var folder = _this8.getFolder(json.file.parent);
+        if (folder) {
+          var _folder$files4;
+          folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), {
+            id: json.file.id,
+            name: json.file.name,
+            url: json.file.url
+          }];
+          _this8.renderContent();
+        }
+        _this8.alert(LANG.successUploadFile);
+      });
+      dropzone.on('error', (file, message) => {
+        console.error(message);
+        _this8.alert(LANG.errorUpload, 'danger');
+      });
+      dropzone.on('complete', file => {
+        var _file$previewElement;
+        return (_file$previewElement = file.previewElement) == null ? void 0 : _file$previewElement.remove();
+      });
+      _this8.dropzone = dropzone;
+    })();
+  }
+  destroyDropzone() {
+    var _this$dropzone;
+    (_this$dropzone = this.dropzone) == null || _this$dropzone.destroy();
+    this.dropzone = null;
+  }
+
+  // ---- Helpers ---------------------------------------------------------
+
+  alert(message, type) {
+    if (type === void 0) {
+      type = 'success';
+    }
+    var alert = document.createElement('div');
+    alert.className = "ml-alert ml-alert--" + type;
+    alert.setAttribute('role', 'status');
+    alert.textContent = message;
+    this.find('.ml-alerts').append(alert);
+    setTimeout(() => {
+      alert.classList.add('out');
+      setTimeout(() => alert.remove(), 300);
+    }, 5000);
+  }
+
+  // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
+  emit(name, detail) {
+    var _this9 = this;
+    return _asyncToGenerator(function* () {
+      var pending;
+      _this9.dispatchEvent(name, _extends({}, detail, {
+        respondWith: promise => {
+          pending = promise;
+        }
+      }));
+      return pending;
+    })();
+  }
+  dispatchEvent(name, payload) {
     if (payload === void 0) {
       payload = {};
     }
     this.dispatch(name, {
       detail: payload,
-      prefix: 'golpilolz_media-library'
+      prefix: EVENT_PREFIX
     });
-  };
-  return _default;
-}(Controller);
-// static elements: Array<any> =  [['nav', 'search'], ['options'], ['tree', 'content', 'modalimg'], ['infos']]
-_default.elements = [['browse', 'search'], ['options'], ['tree', 'content'], ['infos']];
-_default.targets = ['select', 'showPopup', 'popup', 'closePopup', 'loader'];
-_default.templates = {
-  'nav': '',
-  'browse': '<div id="browse" class="browse"><div class="btn-group" role="group"><button type="button" class="btn btn-default btn-sort asc active"><span class="icon-sort-alpha-asc"></span></button><button type="button" class="btn btn-default btn-sort desc"><span class="icon-sort-alpha-desc"></span></button></div><div class="btn-group" role="group"><button type="button" class="btn btn-default open-folder"><span class="icon-folder-open"></span></button></div><div class="btn-group" role="group"><button type="button" class="btn btn-default zoom-file"><span class="icon-zoom-in"></span></button></div></div>',
-  'search': '<div id="search"><input type="text" class="form-control" id="search-input" placeholder="Rechercher un fichier"> </div>',
-  'options': '<div id="options"></div>',
-  'tree': '<div id="tree"></div>',
-  'content': '<div id="content"></div>',
-  'infos': '<div id="infos"></div>',
-  'modalimg': '<div id="modal-zoom-img" class="modal"><img class="modal-content" id="modal-zoom-img-content"></div>',
-  alert: '<div id="${Id}" class="alert alert-dismissable bbl-alert ${State}"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button><p>${Content}</p></div>'
-};
-_default.templateFiles = {
-  'default': {
-    'folders': '<div class="folder"><span class="fa fa-folder"></span><span class="title" data-bbl-title></span></div>',
-    'files': '<div class="file"><div data-bbl-img></div><span class="title" data-bbl-title></span></div>',
-    'previewFile': '<div class="dz-preview dz-file-preview"><div class="dz-details"><img data-dz-thumbnail /><div class="dz-filename"><span data-dz-name></span></div></div><div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div></div>'
+  }
+  find(selector) {
+    return this.contentTarget.querySelector(selector);
+  }
+  findAll(selector) {
+    return [...this.contentTarget.querySelectorAll(selector)];
+  }
+}
+_class.targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled'];
+_class.values = {
+  foldersUrl: String,
+  uploadUrl: {
+    type: String,
+    default: ''
+  },
+  multiple: {
+    type: Boolean,
+    default: false
   }
 };
-export { _default as default };

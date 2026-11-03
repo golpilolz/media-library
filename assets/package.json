@@ -20,11 +20,13 @@
       }
     },
     "importmap": {
-      "@hotwired/stimulus": "^3.0.0"
+      "@hotwired/stimulus": "^3.0.0",
+      "dropzone": "^6.0.0-beta.2"
     }
   },
   "peerDependencies": {
-    "@hotwired/stimulus": "^3.0.0"
+    "@hotwired/stimulus": "^3.0.0",
+    "dropzone": "^6.0.0-beta.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
