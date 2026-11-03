@@ -1,0 +1,37 @@
+/* ---- Theme "sonata": Sonata Admin (AdminLTE 2 / Bootstrap 3) ----
+   AdminLTE has no dark mode: every color token is set so the OS dark scheme doesn't apply. */
+
+.golpilolz-media-library-widget.ml-theme-sonata,
+.ml-theme-sonata .golpilolz-media-library {
+    --ml-accent: #3c8dbc;
+    --ml-accent-hover: #367fa9;
+    --ml-on-accent: #fff;
+    --ml-danger: #dd4b39;
+    --ml-text: #333;
+    --ml-text-secondary: #777;
+    --ml-surface: #fff;
+    --ml-sidebar: #f9fafc;
+    --ml-fill: rgba(0, 0, 0, .06);
+    --ml-fill-strong: #d2d6de;
+    --ml-hover: #f4f4f4;
+    --ml-selected: rgba(60, 141, 188, .12);
+    --ml-separator: #e8ecf0;
+    --ml-thumb: #f4f4f4;
+    --ml-folder: #3c8dbc;
+    --ml-backdrop: rgba(0, 0, 0, .4);
+    --ml-menu: rgba(255, 255, 255, .96);
+    --ml-toast: rgba(34, 45, 50, .94);
+    --ml-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+    --ml-shadow-small: 0 1px 1px rgba(0, 0, 0, .1);
+    --ml-radius: 6px;
+    --ml-radius-control: 3px;
+    --ml-radius-field: 3px;
+    --ml-font: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* Above the AdminLTE header (1030) and Bootstrap 3 modals (1050). */
+    --ml-z: 1060;
+}
+
+/* Bootstrap 3 sets a 14px/1.43 body: keep the widget's own metrics. */
+.golpilolz-media-library-widget.ml-theme-sonata {
+    line-height: normal;
+}

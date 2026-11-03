@@ -10,3 +10,7 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/GolpilolzMediaLibrary.php'
+
+    Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType:
+        arguments:
+            $defaultTheme: '%golpilolz_medialibrary.theme%'

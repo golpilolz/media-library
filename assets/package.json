@@ -41,6 +41,6 @@
   },
   "scripts": {
     "build": "babel src --extensions .ts -d dist",
-    "build:css": "cat src/*.css | csso -o dist/style.min.css"
+    "build:css": "cat src/*.css src/themes/*.css | csso -o dist/style.min.css"
   }
 }

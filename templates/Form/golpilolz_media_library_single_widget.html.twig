@@ -3,7 +3,7 @@
     {%- set dataController = (attr['data-controller']|default('') ~ ' ' ~ controller)|trim -%}
     {%- set ids = value is iterable ? value : (value is empty ? [] : [value]) -%}
     {%- set selected = form.vars.data is iterable ? form.vars.data : (form.vars.data is empty ? [] : [form.vars.data]) -%}
-    <div class="golpilolz-media-library-widget"
+    <div class="golpilolz-media-library-widget ml-theme-{{ theme|default('default') }}"
          data-controller="{{ dataController }}"
          data-{{ controller }}-folders-url-value="{{ path('golpilolz_media-library_folders') }}"
          data-{{ controller }}-upload-url-value="{{ upload_url }}"
