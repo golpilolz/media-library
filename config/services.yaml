@@ -9,5 +9,4 @@ services:
         exclude:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
-            - '../src/Model/'
             - '../src/GolpilolzMediaLibrary.php'
