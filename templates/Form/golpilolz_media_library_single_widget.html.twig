@@ -20,30 +20,51 @@
                 <span class="ml-field-empty-hint">Parcourir la médiathèque</span>
             </span>
         </button>
-        <div class="ml-field-filled"{{ filled ? '' : ' hidden' }} data-{{ controller }}-target="filled">
-            <div class="ml-field-preview" data-{{ controller }}-target="preview">
-                {%- for file in selected -%}
-                    {%- set url = file.url|default('') -%}
-                    {%- set ext = url|split('.')|last|lower -%}
-                    {%- set kind = ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'] ? 'picture'
-                        : ext == 'pdf' ? 'pdf'
-                        : ext in ['doc', 'docx', 'odt', 'rtf'] ? 'doc'
-                        : ext in ['xls', 'xlsx', 'ods', 'csv'] ? 'xls'
-                        : ext in ['zip', 'rar', '7z', 'gz', 'tar'] ? 'zip'
-                        : 'txt' -%}
-                    <div class="ml-preview-item" title="{{ file.name|default('') }}">
-                        <span class="ml-preview-thumb ml-thumb--{{ kind }}">
-                            {%- if kind == 'picture' and url is not empty -%}
-                                <img src="{{ url starts with 'http' or url starts with '/' ? url : app.request.basePath ~ '/' ~ url }}" alt="" loading="lazy">
+        <div class="ml-field-filled{{ multiple ? ' ml-field-filled--multiple' }}"{{ filled ? '' : ' hidden' }} data-{{ controller }}-target="filled">
+            <div class="ml-field-grid">
+                <div class="ml-field-preview" data-{{ controller }}-target="preview">
+                    {%- for file in selected -%}
+                        {%- set url = file.url|default('') -%}
+                        {%- set ext = url|split('.')|last|lower -%}
+                        {%- set kind = ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'] ? 'picture'
+                            : ext == 'pdf' ? 'pdf'
+                            : ext in ['doc', 'docx', 'odt', 'rtf'] ? 'doc'
+                            : ext in ['xls', 'xlsx', 'ods', 'csv'] ? 'xls'
+                            : ext in ['zip', 'rar', '7z', 'gz', 'tar'] ? 'zip'
+                            : 'txt' -%}
+                        <div class="ml-preview-item" title="{{ file.name|default('') }}">
+                            <span class="ml-preview-thumb ml-thumb--{{ kind }}">
+                                {%- if kind == 'picture' and url is not empty -%}
+                                    <img src="{{ url starts with 'http' or url starts with '/' ? url : app.request.basePath ~ '/' ~ url }}" alt="" loading="lazy">
+                                {%- endif -%}
+                            </span>
+                            <span class="ml-preview-name">{{ file.name|default('') }}</span>
+                            {%- if multiple -%}
+                                <button type="button" class="ml-preview-remove"
+                                        data-action="{{ controller }}#remove"
+                                        data-{{ controller }}-id-param="{{ file.id }}"
+                                        aria-label="Retirer {{ file.name|default('') }}" title="Retirer">
+                                    <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                                </button>
                             {%- endif -%}
-                        </span>
-                        <span class="ml-preview-name">{{ file.name|default('') }}</span>
-                    </div>
-                {%- endfor -%}
+                        </div>
+                    {%- endfor -%}
+                </div>
+                {%- if multiple %}
+                <button type="button" class="ml-field-add" data-action="{{ controller }}#open">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <span>Ajouter</span>
+                </button>
+                {%- endif %}
             </div>
             <div class="ml-field-actions">
+                {%- if multiple %}
+                <span class="ml-field-count" data-{{ controller }}-target="count">{{ ids|length > 1 ? ids|length ~ ' fichiers' : '1 fichier' }}</span>
+                <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">Tout retirer</button>
+                {%- else %}
                 <button type="button" class="ml-field-btn" data-action="{{ controller }}#open">Modifier</button>
                 <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">Retirer</button>
+                {%- endif %}
             </div>
         </div>
 
@@ -64,7 +85,8 @@
             <input type="hidden" {{ block('widget_attributes') }} value="{{ id }}"
                    data-{{ controller }}-target="input"/>
         {%- else %}
-            <input type="hidden" {{ block('widget_attributes') }} value=""
+            {#- Multiple: an empty value would be an invalid choice, so an empty field submits nothing. #}
+            <input type="hidden" {{ block('widget_attributes') }} value=""{{ multiple and not disabled ? ' disabled' }}
                    data-{{ controller }}-target="input"/>
         {%- endfor %}
     </div>
