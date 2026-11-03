@@ -24,8 +24,10 @@
     --ml-shadow-small: 0 1px 3px rgba(0, 0, 0, .12);
     --ml-radius: 16px;
     --ml-radius-control: 8px;
+    --ml-radius-field: 12px;
     --ml-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --ml-ease: cubic-bezier(.25, .1, .25, 1);
+    --ml-z: 1000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,7 +73,7 @@
     max-width: 480px;
     padding: 14px 16px;
     border: 1.5px dashed var(--ml-fill-strong);
-    border-radius: 12px;
+    border-radius: var(--ml-radius-field);
     background: var(--ml-surface);
     color: inherit;
     font: inherit;
@@ -129,7 +131,7 @@
     max-width: 480px;
     padding: 10px;
     border: 1px solid var(--ml-separator);
-    border-radius: 12px;
+    border-radius: var(--ml-radius-field);
     background: var(--ml-surface);
     box-shadow: var(--ml-shadow-small);
 }
@@ -337,7 +339,7 @@
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: var(--ml-z);
 }
 
 .ml-popup.show {

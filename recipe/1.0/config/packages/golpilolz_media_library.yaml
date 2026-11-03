@@ -10,3 +10,5 @@ golpilolz_media_library:
     # upload_dir: '%kernel.project_dir%/public/uploads/media-library'
     # upload_path: uploads/media-library
     # allowed_extensions: [jpg, jpeg, png, gif, webp, avif, pdf]
+    # Widget theme: default, sonata (Sonata Admin), easyadmin (EasyAdmin) or a custom name
+    # theme: default

@@ -39,6 +39,7 @@ Generate the tables with `make:migration` and `doctrine:migrations:migrate`.
 | `assets_path` | `/assets/golpilolzmedialibrary` | Public path of library assets |
 | `root_folder` | – | Root folder label |
 | `include_assets`, `include_bootstrap`, `include_jQuery` | – | Toggle bundled front-end assets |
+| `theme` | `default` | Default widget theme (see [Themes](#themes)) |
 | `upload_dir` | `%kernel.project_dir%/public/uploads/media-library` | Where uploaded files are stored |
 | `upload_path` | `uploads/media-library` | Public path of `upload_dir`, relative to the web root |
 | `allowed_extensions` | images (no SVG), pdf, office, txt/csv, zip, mp3/mp4/webm | Extensions the upload endpoint accepts |
@@ -54,6 +55,7 @@ $builder->add('file', GolpilolzMediaLibrarySingleType::class, [
     // extends EntityType; 'class' defaults to Golpilolz\MediaLibrary\Entity\File, 'choice_label' to 'name'
     'multiple' => false,
     'upload_url' => null,         // drag & drop upload URL; defaults to the bundle's endpoint, null disables upload
+    'theme' => 'easyadmin',       // defaults to the `theme` config key
 ]);
 ```
 
@@ -124,6 +126,112 @@ document.addEventListener('golpilolz_media-library:rename-file', (event) => {
     }).then((r) => { if (!r.ok) throw new Error('Renommage impossible'); }));
 });
 ```
+
+## Themes
+
+A theme restyles the widget and its popup to match the host page. Pick it globally with the
+`theme` config key, or per field with the `theme` form option (useful when the same app has a
+front-end and a back office):
+
+```yaml
+# config/packages/golpilolz_media_library.yaml
+golpilolz_media_library:
+    theme: easyadmin
+```
+
+| Theme | For | Notes |
+|---|---|---|
+| `default` | any page | Neutral look, light and dark following the OS scheme |
+| `sonata` | Sonata Admin 4 (AdminLTE / Bootstrap 3) | AdminLTE colors, font and radii; always light, like AdminLTE |
+| `easyadmin` | EasyAdmin 4 | Reads EasyAdmin's CSS variables, so it follows its colors and its light/dark switch |
+
+The built-in themes are included in `style.min.css`: nothing else to load. They also raise the
+popup above the admin header and modals.
+
+The widget still needs the Stimulus controller and its stylesheet, i.e. the app's importmap
+entrypoint (StimulusBundle loads the controller and its CSS from `assets/controllers.json`).
+Admin layouts don't load it by default:
+
+### EasyAdmin
+
+```php
+// src/Controller/Admin/DashboardController.php
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+
+public function configureAssets(): Assets
+{
+    return Assets::new()->addAssetMapperEntry('app');
+}
+```
+
+```php
+// In a CRUD controller
+yield AssociationField::new('file')->setFormType(GolpilolzMediaLibrarySingleType::class);
+// or
+yield Field::new('file')->setFormType(GolpilolzMediaLibrarySingleType::class)
+    ->setFormTypeOption('theme', 'easyadmin');
+```
+
+### Sonata Admin
+
+Override the Sonata layout to load the importmap:
+
+```yaml
+# config/packages/sonata_admin.yaml
+sonata_admin:
+    templates:
+        layout: 'admin/layout.html.twig'
+```
+
+```twig
+{# templates/admin/layout.html.twig #}
+{% extends '@SonataAdmin/standard_layout.html.twig' %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ importmap('app') }}
+{% endblock %}
+```
+
+```php
+// In an admin's configureFormFields()
+$form->add('file', GolpilolzMediaLibrarySingleType::class, ['theme' => 'sonata']);
+```
+
+### Custom theme
+
+A theme name (lowercase letters, digits, `_`) adds the class `ml-theme-<name>` to the widget
+root. Restyle it by overriding the `--ml-*` design tokens (see the top of
+`assets/src/style.css` for the full list) on both the widget and the popup panel:
+
+```css
+.golpilolz-media-library-widget.ml-theme-acme,
+.ml-theme-acme .golpilolz-media-library {
+    --ml-accent: #e4007c;
+    --ml-font: "Inter", sans-serif;
+    --ml-radius-field: 4px;   /* widget card */
+    --ml-radius: 10px;        /* popup */
+    --ml-z: 1100;             /* popup z-index */
+}
+```
+
+Set every color token if the theme must ignore the OS dark scheme.
+
+To change the widget markup for one theme, define the Twig block
+`golpilolz_media_library_single_theme_<name>_widget` in a form theme. Twig picks it before the
+default `golpilolz_media_library_single_widget` block, and can still render the default one:
+
+```twig
+{# templates/form/media_library_acme.html.twig, added to twig.form_themes #}
+{% use '@GolpilolzMediaLibrary/Form/golpilolz_media_library_single_widget.html.twig' %}
+
+{% block golpilolz_media_library_single_theme_acme_widget %}
+    <p class="help">Images de 2 Mo maximum.</p>
+    {{- block('golpilolz_media_library_single_widget') -}}
+{% endblock %}
+```
+
+The `theme` name is available in the widget as the `theme` variable.
 
 ## Extending
 

@@ -1,0 +1,42 @@
+/* ---- Theme "easyadmin": EasyAdmin 4 ----
+   Colors come from EasyAdmin's CSS variables, so they follow its light/dark scheme
+   (.ea-dark-scheme on <body>) rather than the OS one. Fallbacks apply outside EasyAdmin. */
+
+.golpilolz-media-library-widget.ml-theme-easyadmin,
+.ml-theme-easyadmin .golpilolz-media-library {
+    --ml-accent: var(--color-primary, #5468d4);
+    --ml-accent-hover: color-mix(in srgb, var(--ml-accent) 88%, var(--ml-text));
+    /* Light accent in the dark scheme: text in the content background color stays readable. */
+    --ml-on-accent: var(--content-bg, #fff);
+    --ml-danger: var(--color-danger, #dc2626);
+    --ml-text: var(--text-color, #1e293b);
+    --ml-text-secondary: var(--text-muted, #64748b);
+    --ml-surface: var(--content-bg, #fff);
+    --ml-sidebar: var(--sidebar-bg, #f8fafc);
+    --ml-fill: color-mix(in srgb, var(--ml-text) 8%, transparent);
+    --ml-fill-strong: color-mix(in srgb, var(--ml-text) 18%, transparent);
+    --ml-hover: color-mix(in srgb, var(--ml-text) 5%, transparent);
+    --ml-selected: color-mix(in srgb, var(--ml-accent) 14%, transparent);
+    --ml-separator: color-mix(in srgb, var(--ml-text) 12%, transparent);
+    --ml-thumb: color-mix(in srgb, var(--ml-text) 5%, var(--ml-surface));
+    --ml-folder: var(--color-primary, #5468d4);
+    --ml-backdrop: rgba(15, 23, 42, .4);
+    --ml-menu: color-mix(in srgb, var(--dropdown-bg, #fff) 92%, transparent);
+    --ml-toast: rgba(15, 23, 42, .92);
+    --ml-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(15, 23, 42, .2), 0 8px 10px -6px rgba(15, 23, 42, .2));
+    --ml-shadow-small: 0 1px 2px rgba(15, 23, 42, .08);
+    --ml-radius: var(--border-radius-lg, 8px);
+    --ml-radius-control: var(--border-radius, 4px);
+    --ml-radius-field: var(--border-radius-lg, 8px);
+    --ml-font: var(--font-family-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+    /* Above EasyAdmin's modals (backdrop at 2020). */
+    --ml-z: 2030;
+}
+
+.ea-dark-scheme .golpilolz-media-library-widget.ml-theme-easyadmin,
+.ea-dark-scheme .ml-theme-easyadmin .golpilolz-media-library {
+    --ml-backdrop: rgba(0, 0, 0, .6);
+    --ml-toast: rgba(64, 64, 64, .95);
+    --ml-shadow: 0 24px 64px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
+    --ml-shadow-small: none;
+}
