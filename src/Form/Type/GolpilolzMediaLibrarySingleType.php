@@ -40,6 +40,10 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             'prefix' => $this->prefix,
             'upload_url' => $options['upload_url'] ?? '',
             'folder_url' => $options['folder_url'] ?? '',
+            'rename_file_url' => $options['rename_file_url'] ?? '',
+            'rename_folder_url' => $options['rename_folder_url'] ?? '',
+            'move_file_url' => $options['move_file_url'] ?? '',
+            'delete_file_url' => $options['delete_file_url'] ?? '',
             'theme' => $theme,
             'block_prefixes' => $prefixes,
         ]);
@@ -60,6 +64,14 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             // URL receiving folder creation (POST JSON {name, parent}, responds {id}): the bundle's
             // endpoint by default. When null, only an "add-folder" event listener can persist folders.
             'folder_url' => $this->urlGenerator->generate('golpilolz_media-library_add_folder'),
+            // URLs receiving renames (POST JSON {file|folder, name}), moves (POST JSON {file, folder})
+            // and deletions (POST JSON {file}): the bundle's endpoints by default. When null, only the
+            // matching event listener ("rename-file", "rename-folder", "move-file", "delete-file")
+            // can persist the change.
+            'rename_file_url' => $this->urlGenerator->generate('golpilolz_media-library_rename_file'),
+            'rename_folder_url' => $this->urlGenerator->generate('golpilolz_media-library_rename_folder'),
+            'move_file_url' => $this->urlGenerator->generate('golpilolz_media-library_move_file'),
+            'delete_file_url' => $this->urlGenerator->generate('golpilolz_media-library_delete_file'),
             // Theme of the widget and popup: adds the "ml-theme-<theme>" class. Built-in themes:
             // "default", "sonata" (Sonata Admin) and "easyadmin" (EasyAdmin).
             'theme' => $this->defaultTheme,
@@ -67,6 +79,10 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
         $resolver->setAllowedTypes('prefix', ['string']);
         $resolver->setAllowedTypes('upload_url', ['null', 'string']);
         $resolver->setAllowedTypes('folder_url', ['null', 'string']);
+        $resolver->setAllowedTypes('rename_file_url', ['null', 'string']);
+        $resolver->setAllowedTypes('rename_folder_url', ['null', 'string']);
+        $resolver->setAllowedTypes('move_file_url', ['null', 'string']);
+        $resolver->setAllowedTypes('delete_file_url', ['null', 'string']);
         $resolver->setAllowedTypes('theme', ['string']);
         $resolver->setNormalizer('theme', static function (Options $options, string $theme): string {
             if (!preg_match('/^[a-z0-9_]+$/', $theme)) {

@@ -72,6 +72,10 @@ const LANG = {
     emptyLabel: 'Veuillez entrer un libellé',
     emptyTarget: 'Veuillez choisir un dossier',
     errorAddFolder: 'Erreur lors de la création du dossier',
+    errorRenameFile: 'Erreur lors du renommage du fichier',
+    errorRenameFolder: 'Erreur lors du renommage du dossier',
+    errorMoveFile: 'Erreur lors du déplacement du fichier',
+    errorDeleteFile: 'Erreur lors de la suppression du fichier',
     errorAction: 'Une erreur est survenue',
     errorUpload: "Erreur lors de l'envoi du fichier",
     errorUploadRoot: 'Ouvrez un dossier pour y déposer des fichiers',
@@ -116,6 +120,10 @@ export default class extends Controller {
         foldersUrl: String,
         uploadUrl: {type: String, default: ''},
         folderUrl: {type: String, default: ''},
+        renameFileUrl: {type: String, default: ''},
+        renameFolderUrl: {type: String, default: ''},
+        moveFileUrl: {type: String, default: ''},
+        deleteFileUrl: {type: String, default: ''},
         multiple: {type: Boolean, default: false},
     }
 
@@ -132,6 +140,10 @@ export default class extends Controller {
     declare readonly foldersUrlValue: string
     declare readonly uploadUrlValue: string
     declare readonly folderUrlValue: string
+    declare readonly renameFileUrlValue: string
+    declare readonly renameFolderUrlValue: string
+    declare readonly moveFileUrlValue: string
+    declare readonly deleteFileUrlValue: string
     declare readonly multipleValue: boolean
 
     private folders: MediaFolder[] = []
@@ -712,7 +724,7 @@ export default class extends Controller {
             {
                 label: LANG.rename, className: 'ml-btn-primary', action: async dialog => {
                     const name = this.readTitle(dialog)
-                    await this.emit('rename-file', {file, name})
+                    await this.persist('rename-file', {file, name}, this.renameFileUrlValue, {file: file.id, name}, LANG.errorRenameFile)
                     file.name = name
                     this.renderContent()
                     this.alert(LANG.successRenameFile)
@@ -727,7 +739,7 @@ export default class extends Controller {
             {
                 label: LANG.rename, className: 'ml-btn-primary', action: async dialog => {
                     const name = this.readTitle(dialog)
-                    await this.emit('rename-folder', {folder, name})
+                    await this.persist('rename-folder', {folder, name}, this.renameFolderUrlValue, {folder: folder.id, name}, LANG.errorRenameFolder)
                     folder.name = name
                     this.render()
                     this.alert(LANG.successRenameFolder)
@@ -799,7 +811,7 @@ export default class extends Controller {
                         throw new Error(LANG.emptyTarget)
                     }
                     const target = this.getFolder(Number(checked.value))
-                    await this.emit('move-file', {file, folder: target})
+                    await this.persist('move-file', {file, folder: target}, this.moveFileUrlValue, {file: file.id, folder: target.id}, LANG.errorMoveFile)
                     if (source) {
                         source.files = source.files.filter(other => other.id !== file.id)
                     }
@@ -811,12 +823,37 @@ export default class extends Controller {
         ])
     }
 
+    // Dispatch the event, then persist the change with the bundle endpoint `url` (POST JSON `body`)
+    // when no listener answered. An empty url means the change only lives in the popup.
+    // A listener's rejection is shown as is; an endpoint failure is logged and shown as `errorMessage`.
+    private async persist(event: string, detail: object, url: string, body: object, errorMessage: string): Promise<void> {
+        let answered = false
+        await this.emit(event, detail, () => answered = true)
+        if (answered || url === '') {
+            return
+        }
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+                body: JSON.stringify(body),
+            })
+            const json = await response.json().catch(() => null)
+            if (!response.ok || json?.result !== 'success') {
+                throw new Error(json?.message ?? `HTTP ${response.status}`)
+            }
+        } catch (error) {
+            console.error(error)
+            throw new Error(errorMessage)
+        }
+    }
+
     private deleteFile(file: MediaFile) {
         this.dialog(LANG.titleDeleteFile, `<p>${LANG.confirmDeleteFile} <strong>${escapeHtml(file.name)}</strong></p>`, [
             {label: LANG.cancel},
             {
                 label: LANG.delete, className: 'ml-btn-danger', action: async () => {
-                    await this.emit('delete-file', {file})
+                    await this.persist('delete-file', {file}, this.deleteFileUrlValue, {file: file.id}, LANG.errorDeleteFile)
                     const folder = this.getFileFolder(file.id)
                     if (folder) {
                         folder.files = folder.files.filter(other => other.id !== file.id)
@@ -953,12 +990,14 @@ export default class extends Controller {
     }
 
     // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
-    private async emit<T = unknown>(name: string, detail: object): Promise<T | undefined> {
+    // onRespond is called when a listener answers, to tell it apart from a promise resolving to undefined.
+    private async emit<T = unknown>(name: string, detail: object, onRespond?: () => void): Promise<T | undefined> {
         let pending: Promise<T> | undefined
         this.dispatchEvent(name, {
             ...detail,
             respondWith: (promise: Promise<T>) => {
                 pending = promise
+                onRespond?.()
             },
         })
         return pending

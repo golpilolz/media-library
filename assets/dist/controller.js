@@ -45,6 +45,10 @@ var LANG = {
   emptyLabel: 'Veuillez entrer un libellé',
   emptyTarget: 'Veuillez choisir un dossier',
   errorAddFolder: 'Erreur lors de la création du dossier',
+  errorRenameFile: 'Erreur lors du renommage du fichier',
+  errorRenameFolder: 'Erreur lors du renommage du dossier',
+  errorMoveFile: 'Erreur lors du déplacement du fichier',
+  errorDeleteFile: 'Erreur lors de la suppression du fichier',
   errorAction: 'Une erreur est survenue',
   errorUpload: "Erreur lors de l'envoi du fichier",
   errorUploadRoot: 'Ouvrez un dossier pour y déposer des fichiers',
@@ -624,10 +628,13 @@ export default class _class extends Controller {
       action: function () {
         var _action = _asyncToGenerator(function* (dialog) {
           var name = _this3.readTitle(dialog);
-          yield _this3.emit('rename-file', {
+          yield _this3.persist('rename-file', {
             file,
             name
-          });
+          }, _this3.renameFileUrlValue, {
+            file: file.id,
+            name
+          }, LANG.errorRenameFile);
           file.name = name;
           _this3.renderContent();
           _this3.alert(LANG.successRenameFile);
@@ -649,10 +656,13 @@ export default class _class extends Controller {
       action: function () {
         var _action2 = _asyncToGenerator(function* (dialog) {
           var name = _this4.readTitle(dialog);
-          yield _this4.emit('rename-folder', {
+          yield _this4.persist('rename-folder', {
             folder,
             name
-          });
+          }, _this4.renameFolderUrlValue, {
+            folder: folder.id,
+            name
+          }, LANG.errorRenameFolder);
           folder.name = name;
           _this4.render();
           _this4.alert(LANG.successRenameFolder);
@@ -756,10 +766,13 @@ export default class _class extends Controller {
             throw new Error(LANG.emptyTarget);
           }
           var target = _this7.getFolder(Number(checked.value));
-          yield _this7.emit('move-file', {
+          yield _this7.persist('move-file', {
             file,
             folder: target
-          });
+          }, _this7.moveFileUrlValue, {
+            file: file.id,
+            folder: target.id
+          }, LANG.errorMoveFile);
           if (source) {
             source.files = source.files.filter(other => other.id !== file.id);
           }
@@ -774,8 +787,40 @@ export default class _class extends Controller {
       }()
     }]);
   }
-  deleteFile(file) {
+
+  // Dispatch the event, then persist the change with the bundle endpoint `url` (POST JSON `body`)
+  // when no listener answered. An empty url means the change only lives in the popup.
+  // A listener's rejection is shown as is; an endpoint failure is logged and shown as `errorMessage`.
+  persist(event, detail, url, body, errorMessage) {
     var _this8 = this;
+    return _asyncToGenerator(function* () {
+      var answered = false;
+      yield _this8.emit(event, detail, () => answered = true);
+      if (answered || url === '') {
+        return;
+      }
+      try {
+        var response = yield fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+        var json = yield response.json().catch(() => null);
+        if (!response.ok || (json == null ? void 0 : json.result) !== 'success') {
+          var _json$message2;
+          throw new Error((_json$message2 = json == null ? void 0 : json.message) != null ? _json$message2 : "HTTP " + response.status);
+        }
+      } catch (error) {
+        console.error(error);
+        throw new Error(errorMessage);
+      }
+    })();
+  }
+  deleteFile(file) {
+    var _this9 = this;
     this.dialog(LANG.titleDeleteFile, "<p>" + LANG.confirmDeleteFile + " <strong>" + escapeHtml(file.name) + "</strong></p>", [{
       label: LANG.cancel
     }, {
@@ -783,16 +828,18 @@ export default class _class extends Controller {
       className: 'ml-btn-danger',
       action: function () {
         var _action5 = _asyncToGenerator(function* () {
-          yield _this8.emit('delete-file', {
+          yield _this9.persist('delete-file', {
             file
-          });
-          var folder = _this8.getFileFolder(file.id);
+          }, _this9.deleteFileUrlValue, {
+            file: file.id
+          }, LANG.errorDeleteFile);
+          var folder = _this9.getFileFolder(file.id);
           if (folder) {
             folder.files = folder.files.filter(other => other.id !== file.id);
           }
-          _this8.selectedFileIds.delete(file.id);
-          _this8.renderContent();
-          _this8.alert(LANG.successDeleteFile);
+          _this9.selectedFileIds.delete(file.id);
+          _this9.renderContent();
+          _this9.alert(LANG.successDeleteFile);
         });
         function action() {
           return _action5.apply(this, arguments);
@@ -850,21 +897,21 @@ export default class _class extends Controller {
   // ---- Upload (Dropzone) ----------------------------------------------
 
   initDropzone(session) {
-    var _this9 = this;
+    var _this10 = this;
     return _asyncToGenerator(function* () {
-      if (_this9.uploadUrlValue === '' || _this9.dropzone) {
+      if (_this10.uploadUrlValue === '' || _this10.dropzone) {
         return;
       }
       var {
         default: Dropzone
       } = yield import('dropzone');
-      if (session !== _this9.session || _this9.dropzone) {
+      if (session !== _this10.session || _this10.dropzone) {
         return;
       }
-      var targetFolderId = _this9.activeFolderId;
-      var dropzone = new Dropzone(_this9.find('.ml-content'), {
-        url: _this9.uploadUrlValue,
-        previewsContainer: _this9.find('.ml-infos'),
+      var targetFolderId = _this10.activeFolderId;
+      var dropzone = new Dropzone(_this10.find('.ml-content'), {
+        url: _this10.uploadUrlValue,
+        previewsContainer: _this10.find('.ml-infos'),
         clickable: false,
         // Files belong to a folder: the root has none to store them in.
         accept: (file, done) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
@@ -873,14 +920,14 @@ export default class _class extends Controller {
       });
       dropzone.on('drop', event => {
         var folder = event.target.closest('.ml-folder');
-        targetFolderId = folder ? Number(folder.dataset.folderId) : _this9.activeFolderId;
+        targetFolderId = folder ? Number(folder.dataset.folderId) : _this10.activeFolderId;
       });
       dropzone.on('sending', (file, xhr, formData) => {
-        var _this9$getFolder;
+        var _this10$getFolder;
         formData.append('folder', String(targetFolderId));
-        _this9.dispatchEvent('upload-sending', {
+        _this10.dispatchEvent('upload-sending', {
           file,
-          folder: (_this9$getFolder = _this9.getFolder(targetFolderId)) != null ? _this9$getFolder : null,
+          folder: (_this10$getFolder = _this10.getFolder(targetFolderId)) != null ? _this10$getFolder : null,
           xhr,
           formData
         });
@@ -888,10 +935,10 @@ export default class _class extends Controller {
       dropzone.on('success', (file, json) => {
         if ((json == null ? void 0 : json.result) !== 'success') {
           console.error(json);
-          _this9.alert(LANG.errorUpload, 'danger');
+          _this10.alert(LANG.errorUpload, 'danger');
           return;
         }
-        var folder = _this9.getFolder(json.file.parent);
+        var folder = _this10.getFolder(json.file.parent);
         if (folder) {
           var _folder$files4;
           folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), {
@@ -899,19 +946,19 @@ export default class _class extends Controller {
             name: json.file.name,
             url: json.file.url
           }];
-          _this9.renderContent();
+          _this10.renderContent();
         }
-        _this9.alert(LANG.successUploadFile);
+        _this10.alert(LANG.successUploadFile);
       });
       dropzone.on('error', (file, message) => {
         console.error(message);
-        _this9.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
+        _this10.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
       });
       dropzone.on('complete', file => {
         var _file$previewElement;
         return (_file$previewElement = file.previewElement) == null ? void 0 : _file$previewElement.remove();
       });
-      _this9.dropzone = dropzone;
+      _this10.dropzone = dropzone;
     })();
   }
   destroyDropzone() {
@@ -938,13 +985,15 @@ export default class _class extends Controller {
   }
 
   // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
-  emit(name, detail) {
-    var _this10 = this;
+  // onRespond is called when a listener answers, to tell it apart from a promise resolving to undefined.
+  emit(name, detail, onRespond) {
+    var _this11 = this;
     return _asyncToGenerator(function* () {
       var pending;
-      _this10.dispatchEvent(name, _extends({}, detail, {
+      _this11.dispatchEvent(name, _extends({}, detail, {
         respondWith: promise => {
           pending = promise;
+          onRespond == null || onRespond();
         }
       }));
       return pending;
@@ -974,6 +1023,22 @@ _class.values = {
     default: ''
   },
   folderUrl: {
+    type: String,
+    default: ''
+  },
+  renameFileUrl: {
+    type: String,
+    default: ''
+  },
+  renameFolderUrl: {
+    type: String,
+    default: ''
+  },
+  moveFileUrl: {
+    type: String,
+    default: ''
+  },
+  deleteFileUrl: {
     type: String,
     default: ''
   },
