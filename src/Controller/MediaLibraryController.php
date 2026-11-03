@@ -51,6 +51,44 @@ class MediaLibraryController extends AbstractController
     }
 
     /**
+     * Creates a folder from the popup. JSON body `{"name": "…", "parent": <folder id, or 0/null for the root>}`.
+     */
+    #[Route('/folders', name: 'add_folder', methods: ['POST'])]
+    public function addFolderAction(
+        Request $request,
+        FolderRepository $folderRepository,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        try {
+            $payload = $request->toArray();
+        } catch (\Throwable) {
+            return $this->uploadError('Invalid JSON body.');
+        }
+
+        $name = is_string($payload['name'] ?? null) ? trim($payload['name']) : '';
+        if ($name === '' || mb_strlen($name) > 255) {
+            return $this->uploadError('Invalid folder name.');
+        }
+
+        $parent = null;
+        $parentId = $payload['parent'] ?? null;
+        if (!in_array($parentId, [null, 0, '0', ''], true)) {
+            $parent = $folderRepository->find((int) $parentId);
+            if (!$parent instanceof Folder) {
+                return $this->uploadError('Unknown parent folder.');
+            }
+        }
+
+        $folder = new Folder();
+        $folder->setName($name);
+        $folder->setParent($parent);
+        $entityManager->persist($folder);
+        $entityManager->flush();
+
+        return new JsonResponse(['result' => 'success', 'id' => $folder->getId()], Response::HTTP_CREATED);
+    }
+
+    /**
      * Receives a file dropped into the popup (multipart fields `file` and `folder`), stores it
      * in `upload_dir` and creates the File entity in that folder.
      *

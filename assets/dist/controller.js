@@ -678,11 +678,11 @@ export default class _class extends Controller {
           var name = _this5.readTitle(dialog);
           var response;
           try {
-            var _this5$getFolder;
-            response = yield _this5.emit('add-folder', {
+            var _yield$_this5$emit, _this5$getFolder;
+            response = (_yield$_this5$emit = yield _this5.emit('add-folder', {
               parent: (_this5$getFolder = _this5.getFolder(parent)) != null ? _this5$getFolder : null,
               name
-            });
+            })) != null ? _yield$_this5$emit : yield _this5.createFolder(name, parent);
           } catch (error) {
             console.error(error);
             throw new Error(LANG.errorAddFolder);
@@ -707,8 +707,37 @@ export default class _class extends Controller {
       }()
     }]);
   }
-  moveFile(file) {
+
+  // Persist a folder with the folder_url endpoint, when no add-folder listener answered.
+  createFolder(name, parent) {
     var _this6 = this;
+    return _asyncToGenerator(function* () {
+      if (_this6.folderUrlValue === '') {
+        return undefined;
+      }
+      var response = yield fetch(_this6.folderUrlValue, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          name,
+          parent
+        })
+      });
+      var json = yield response.json().catch(() => null);
+      if (!response.ok || (json == null ? void 0 : json.result) !== 'success' || typeof json.id !== 'number') {
+        var _json$message;
+        throw new Error((_json$message = json == null ? void 0 : json.message) != null ? _json$message : "HTTP " + response.status);
+      }
+      return {
+        id: json.id
+      };
+    })();
+  }
+  moveFile(file) {
+    var _this7 = this;
     var source = this.getFileFolder(file.id);
     var branch = parent => {
       var children = this.getChildFolders(parent).sort(byName(true));
@@ -726,8 +755,8 @@ export default class _class extends Controller {
           if (!checked) {
             throw new Error(LANG.emptyTarget);
           }
-          var target = _this6.getFolder(Number(checked.value));
-          yield _this6.emit('move-file', {
+          var target = _this7.getFolder(Number(checked.value));
+          yield _this7.emit('move-file', {
             file,
             folder: target
           });
@@ -735,8 +764,8 @@ export default class _class extends Controller {
             source.files = source.files.filter(other => other.id !== file.id);
           }
           target.files = [...((_target$files = target.files) != null ? _target$files : []), file];
-          _this6.renderContent();
-          _this6.alert(LANG.successMoveFile);
+          _this7.renderContent();
+          _this7.alert(LANG.successMoveFile);
         });
         function action(_x4) {
           return _action4.apply(this, arguments);
@@ -746,7 +775,7 @@ export default class _class extends Controller {
     }]);
   }
   deleteFile(file) {
-    var _this7 = this;
+    var _this8 = this;
     this.dialog(LANG.titleDeleteFile, "<p>" + LANG.confirmDeleteFile + " <strong>" + escapeHtml(file.name) + "</strong></p>", [{
       label: LANG.cancel
     }, {
@@ -754,16 +783,16 @@ export default class _class extends Controller {
       className: 'ml-btn-danger',
       action: function () {
         var _action5 = _asyncToGenerator(function* () {
-          yield _this7.emit('delete-file', {
+          yield _this8.emit('delete-file', {
             file
           });
-          var folder = _this7.getFileFolder(file.id);
+          var folder = _this8.getFileFolder(file.id);
           if (folder) {
             folder.files = folder.files.filter(other => other.id !== file.id);
           }
-          _this7.selectedFileIds.delete(file.id);
-          _this7.renderContent();
-          _this7.alert(LANG.successDeleteFile);
+          _this8.selectedFileIds.delete(file.id);
+          _this8.renderContent();
+          _this8.alert(LANG.successDeleteFile);
         });
         function action() {
           return _action5.apply(this, arguments);
@@ -821,21 +850,21 @@ export default class _class extends Controller {
   // ---- Upload (Dropzone) ----------------------------------------------
 
   initDropzone(session) {
-    var _this8 = this;
+    var _this9 = this;
     return _asyncToGenerator(function* () {
-      if (_this8.uploadUrlValue === '' || _this8.dropzone) {
+      if (_this9.uploadUrlValue === '' || _this9.dropzone) {
         return;
       }
       var {
         default: Dropzone
       } = yield import('dropzone');
-      if (session !== _this8.session || _this8.dropzone) {
+      if (session !== _this9.session || _this9.dropzone) {
         return;
       }
-      var targetFolderId = _this8.activeFolderId;
-      var dropzone = new Dropzone(_this8.find('.ml-content'), {
-        url: _this8.uploadUrlValue,
-        previewsContainer: _this8.find('.ml-infos'),
+      var targetFolderId = _this9.activeFolderId;
+      var dropzone = new Dropzone(_this9.find('.ml-content'), {
+        url: _this9.uploadUrlValue,
+        previewsContainer: _this9.find('.ml-infos'),
         clickable: false,
         // Files belong to a folder: the root has none to store them in.
         accept: (file, done) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
@@ -844,14 +873,14 @@ export default class _class extends Controller {
       });
       dropzone.on('drop', event => {
         var folder = event.target.closest('.ml-folder');
-        targetFolderId = folder ? Number(folder.dataset.folderId) : _this8.activeFolderId;
+        targetFolderId = folder ? Number(folder.dataset.folderId) : _this9.activeFolderId;
       });
       dropzone.on('sending', (file, xhr, formData) => {
-        var _this8$getFolder;
+        var _this9$getFolder;
         formData.append('folder', String(targetFolderId));
-        _this8.dispatchEvent('upload-sending', {
+        _this9.dispatchEvent('upload-sending', {
           file,
-          folder: (_this8$getFolder = _this8.getFolder(targetFolderId)) != null ? _this8$getFolder : null,
+          folder: (_this9$getFolder = _this9.getFolder(targetFolderId)) != null ? _this9$getFolder : null,
           xhr,
           formData
         });
@@ -859,10 +888,10 @@ export default class _class extends Controller {
       dropzone.on('success', (file, json) => {
         if ((json == null ? void 0 : json.result) !== 'success') {
           console.error(json);
-          _this8.alert(LANG.errorUpload, 'danger');
+          _this9.alert(LANG.errorUpload, 'danger');
           return;
         }
-        var folder = _this8.getFolder(json.file.parent);
+        var folder = _this9.getFolder(json.file.parent);
         if (folder) {
           var _folder$files4;
           folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), {
@@ -870,19 +899,19 @@ export default class _class extends Controller {
             name: json.file.name,
             url: json.file.url
           }];
-          _this8.renderContent();
+          _this9.renderContent();
         }
-        _this8.alert(LANG.successUploadFile);
+        _this9.alert(LANG.successUploadFile);
       });
       dropzone.on('error', (file, message) => {
         console.error(message);
-        _this8.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
+        _this9.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
       });
       dropzone.on('complete', file => {
         var _file$previewElement;
         return (_file$previewElement = file.previewElement) == null ? void 0 : _file$previewElement.remove();
       });
-      _this8.dropzone = dropzone;
+      _this9.dropzone = dropzone;
     })();
   }
   destroyDropzone() {
@@ -910,10 +939,10 @@ export default class _class extends Controller {
 
   // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
   emit(name, detail) {
-    var _this9 = this;
+    var _this10 = this;
     return _asyncToGenerator(function* () {
       var pending;
-      _this9.dispatchEvent(name, _extends({}, detail, {
+      _this10.dispatchEvent(name, _extends({}, detail, {
         respondWith: promise => {
           pending = promise;
         }
@@ -941,6 +970,10 @@ _class.targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'fi
 _class.values = {
   foldersUrl: String,
   uploadUrl: {
+    type: String,
+    default: ''
+  },
+  folderUrl: {
     type: String,
     default: ''
   },

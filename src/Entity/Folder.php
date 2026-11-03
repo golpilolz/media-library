@@ -23,7 +23,7 @@ class Folder
 
     #[ORM\ManyToOne(targetEntity: Folder::class, inversedBy: "children")]
     #[ORM\JoinColumn(name: "parent_id", referencedColumnName: "id", nullable: true)]
-    protected ?Folder $parent;
+    protected ?Folder $parent = null;
 
     /** @var Collection<int, Folder> */
     #[ORM\OneToMany(mappedBy: "parent", targetEntity: Folder::class)]
@@ -32,8 +32,9 @@ class Folder
     #[ORM\Column(name: "name", type: "string", length: 255)]
     protected string $name;
 
-    #[ORM\Column(name: "lock", type: "boolean")]
-    protected bool $lock;
+    // LOCK is a reserved word in MySQL/MariaDB: backticks make Doctrine quote it.
+    #[ORM\Column(name: "`lock`", type: "boolean")]
+    protected bool $lock = false;
 
     public function __construct()
     {
@@ -84,8 +85,9 @@ class Folder
         return $this->parent;
     }
 
-    public function setParent(Folder $parent)
+    public function setParent(?Folder $parent)
     {
         $this->parent = $parent;
+        return $this;
     }
 }

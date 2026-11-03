@@ -6,7 +6,7 @@ golpilolz_media_library:
     include_assets: true
     include_bootstrap: true
     include_jQuery: true
-    # Drag & drop uploads (POST /media-library/upload)
+    # Drag & drop uploads (POST /media-library/upload). Folders are created with POST /media-library/folders.
     # upload_dir: '%kernel.project_dir%/public/uploads/media-library'
     # upload_path: uploads/media-library
     # allowed_extensions: [jpg, jpeg, png, gif, webp, avif, pdf]
