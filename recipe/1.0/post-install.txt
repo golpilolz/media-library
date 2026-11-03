@@ -1,7 +1,5 @@
   * <bg=blue;fg=white>golpilolz/media-library</> installed:
 
-    1. Create the <comment>App\Entity\File</> and <comment>App\Entity\Folder</> entities extending
-       <comment>Golpilolz\MediaLibrary\Model\File</> / <comment>Folder</> (see vendor/golpilolz/media-library/docs/index.md).
-    2. Generate and run the migration:
+    1. Generate and run the migration for the bundle's <comment>file</> / <comment>folder</> tables:
        <comment>php bin/console make:migration && php bin/console doctrine:migrations:migrate</>
-    3. Use <comment>Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType</> in your forms.
+    2. Use <comment>Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType</> in your forms.

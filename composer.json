@@ -24,6 +24,8 @@
   },
   "require": {
     "symfony/asset-mapper": "^7.4 | ^8",
+    "doctrine/doctrine-bundle": "^2.18 | ^3.2",
+    "doctrine/orm": "^3.6",
     "twig/extra-bundle": "^2.12|^3.0",
     "twig/twig": "^2.12|^3.0"
   },
