@@ -3,6 +3,8 @@
 namespace Golpilolz\MediaLibrary\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Golpilolz\MediaLibrary\Dto\AddFolderPayload;
+use Golpilolz\MediaLibrary\Dto\UploadPayload;
 use Golpilolz\MediaLibrary\Entity\File;
 use Golpilolz\MediaLibrary\Entity\Folder;
 use Golpilolz\MediaLibrary\Repository\FolderRepository;
@@ -13,7 +15,10 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[Route('/media-library', name: 'golpilolz_media-library_')]
 class MediaLibraryController extends AbstractController
@@ -51,36 +56,25 @@ class MediaLibraryController extends AbstractController
     }
 
     /**
-     * Creates a folder from the popup. JSON body `{"name": "…", "parent": <folder id, or 0/null for the root>}`.
+     * Creates a folder from the popup. JSON body `{"name": "…", "parent": <folder id, or 0/null for the root>}`,
+     * see AddFolderPayload. An invalid body gets a 422 (400 if it isn't JSON).
      */
     #[Route('/folders', name: 'add_folder', methods: ['POST'])]
     public function addFolderAction(
-        Request $request,
+        #[MapRequestPayload(acceptFormat: 'json')] AddFolderPayload $payload,
         FolderRepository $folderRepository,
         EntityManagerInterface $entityManager,
     ): JsonResponse {
-        try {
-            $payload = $request->toArray();
-        } catch (\Throwable) {
-            return $this->uploadError('Invalid JSON body.');
-        }
-
-        $name = is_string($payload['name'] ?? null) ? trim($payload['name']) : '';
-        if ($name === '' || mb_strlen($name) > 255) {
-            return $this->uploadError('Invalid folder name.');
-        }
-
         $parent = null;
-        $parentId = $payload['parent'] ?? null;
-        if (!in_array($parentId, [null, 0, '0', ''], true)) {
-            $parent = $folderRepository->find((int) $parentId);
+        if (!in_array($payload->parent, [null, 0], true)) {
+            $parent = $folderRepository->find($payload->parent);
             if (!$parent instanceof Folder) {
                 return $this->uploadError('Unknown parent folder.');
             }
         }
 
         $folder = new Folder();
-        $folder->setName($name);
+        $folder->setName($payload->name);
         $folder->setParent($parent);
         $entityManager->persist($folder);
         $entityManager->flush();
@@ -89,37 +83,35 @@ class MediaLibraryController extends AbstractController
     }
 
     /**
-     * Receives a file dropped into the popup (multipart fields `file` and `folder`), stores it
-     * in `upload_dir` and creates the File entity in that folder.
+     * Receives a file dropped into the popup (multipart fields `file` and `folder`, see UploadPayload),
+     * stores it in `upload_dir` and creates the File entity in that folder. A missing or failed
+     * upload, or an invalid `folder` field, gets a 422 (400 when `folder` is missing).
      *
      * @param string[] $allowedExtensions
      */
     #[Route('/upload', name: 'upload', methods: ['POST'])]
     public function uploadAction(
         Request $request,
+        #[MapUploadedFile(new Assert\File())] UploadedFile $file,
+        #[MapRequestPayload(acceptFormat: 'form')] UploadPayload $payload,
         FolderRepository $folderRepository,
         EntityManagerInterface $entityManager,
         #[Autowire(param: 'golpilolz_medialibrary.upload_dir')] string $uploadDir,
         #[Autowire(param: 'golpilolz_medialibrary.upload_path')] string $uploadPath,
         #[Autowire(param: 'golpilolz_medialibrary.allowed_extensions')] array $allowedExtensions,
     ): JsonResponse {
-        $upload = $request->files->get('file');
-        if (!$upload instanceof UploadedFile || !$upload->isValid()) {
-            return $this->uploadError($upload instanceof UploadedFile ? $upload->getErrorMessage() : 'No file uploaded.');
-        }
-
-        $folder = $folderRepository->find($request->request->getInt('folder'));
+        $folder = $folderRepository->find($payload->folder);
         if (!$folder instanceof Folder) {
             return $this->uploadError('Unknown folder.');
         }
 
         // The extension decides how the web server serves the file: only accept known ones.
-        $extension = strtolower($upload->getClientOriginalExtension());
+        $extension = strtolower($file->getClientOriginalExtension());
         if (!in_array($extension, array_map('strtolower', $allowedExtensions), true)) {
             return $this->uploadError(sprintf('Extension "%s" is not allowed.', $extension), Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
-        $name = $upload->getClientOriginalName();
+        $name = $file->getClientOriginalName();
         $basename = trim(preg_replace('/[^A-Za-z0-9_-]+/', '-', pathinfo($name, PATHINFO_FILENAME)), '-') ?: 'file';
         $filename = $basename . '.' . $extension;
         for ($i = 1; file_exists($uploadDir . '/' . $filename); $i++) {
@@ -127,24 +119,24 @@ class MediaLibraryController extends AbstractController
         }
 
         try {
-            $upload->move($uploadDir, $filename);
+            $file->move($uploadDir, $filename);
         } catch (FileException $e) {
             return $this->uploadError($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        $file = new File();
-        $file->setName($name);
-        $file->setUrl(trim($uploadPath, '/') . '/' . $filename);
-        $file->setFolder($folder);
-        $entityManager->persist($file);
+        $media = new File();
+        $media->setName($name);
+        $media->setUrl(trim($uploadPath, '/') . '/' . $filename);
+        $media->setFolder($folder);
+        $entityManager->persist($media);
         $entityManager->flush();
 
         return new JsonResponse([
             'result' => 'success',
             'file' => [
-                'id' => $file->getId(),
-                'name' => $file->getName(),
-                'url' => $this->publicUrl($request, $file),
+                'id' => $media->getId(),
+                'name' => $media->getName(),
+                'url' => $this->publicUrl($request, $media),
                 'parent' => $folder->getId(),
             ],
         ]);
