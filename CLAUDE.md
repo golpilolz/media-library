@@ -30,7 +30,8 @@ The popup has no jQuery and no CSS framework. Markup comes from TypeScript templ
 Front-end pitfalls already hit:
 - The widget renders inside the page's Symfony `<form>`. The HTML parser drops a nested `<form>` (so no `<form method="dialog">`), and any `type="submit"` button or Enter in an input submits the page.
 - `open()` is async (it fetches folders). A `session` counter discards a stale `open()` after a newer open or a close, which would otherwise attach a second Dropzone.
-- Don't animate `transform` on the popup: it turns the popup into the containing block of the `position: fixed` context menu and offsets it.
+- Never put `transform`, `filter` or `backdrop-filter` (static or animated) on the panel or its ancestors. Any of them makes that element the containing block of the `position: fixed` context menu, which then gets offset. The panel animates `top`/`bottom`, and the backdrop blur sits on `.ml-popup::before`.
+- Everything is scoped under `.golpilolz-media-library` (the panel) or `.golpilolz-media-library-widget`, with `ml-` classes, because the widget renders inside arbitrary host pages. The design tokens (`--ml-*`, light and dark via `prefers-color-scheme`) are defined on those two roots, not on `:root`.
 
 ## Architecture
 

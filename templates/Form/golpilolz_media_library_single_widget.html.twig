@@ -31,16 +31,16 @@
             </button>
         </div>
 
-        <div class="popup" data-{{ controller }}-target="popup">
-            <div class="golpilolz-media-library popup-content">
-                <button type="button" class="close-popup" aria-label="Fermer"
+        <div class="ml-popup" data-{{ controller }}-target="popup">
+            <div class="golpilolz-media-library ml-panel" role="dialog" aria-modal="true" aria-label="Médiathèque">
+                <button type="button" class="ml-close" aria-label="Fermer" title="Fermer"
                         data-action="{{ controller }}#close">
-                    <span class="icon-cross"></span>
+                    <span class="icon-cross" aria-hidden="true"></span>
                 </button>
-                <div class="loader-container" data-{{ controller }}-target="loader" hidden>
-                    <span class="loader"></span>
+                <div class="ml-loader" data-{{ controller }}-target="loader" hidden>
+                    <span class="ml-spinner"></span>
                 </div>
-                <div class="media-library-content" data-{{ controller }}-target="content"></div>
+                <div class="ml-shell" data-{{ controller }}-target="content"></div>
             </div>
         </div>
 

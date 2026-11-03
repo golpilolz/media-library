@@ -14,7 +14,14 @@ var ICONS = {
   zip: ['zip', 'rar', '7z', 'gz', 'tar']
 };
 var LANG = {
+  title: 'Médiathèque',
   root: 'Accueil',
+  select: 'Sélectionner',
+  emptyFolder: 'Ce dossier est vide',
+  emptyFolderUpload: 'Glissez des fichiers ici pour les ajouter.',
+  noSelection: 'Aucun fichier sélectionné',
+  oneSelected: '1 fichier sélectionné',
+  manySelected: count => count + " fichiers s\xE9lectionn\xE9s",
   search: 'Rechercher un fichier',
   sortAsc: 'Trier de A à Z',
   sortDesc: 'Trier de Z à A',
@@ -205,12 +212,31 @@ export default class _class extends Controller {
   // ---- Rendering -------------------------------------------------------
 
   layoutTemplate() {
-    var lastButton = this.multipleValue ? "<button type=\"button\" class=\"ml-btn\" data-ml-action=\"validate\" title=\"" + LANG.validate + "\">\u2713</button>" : "<button type=\"button\" class=\"ml-btn\" data-ml-action=\"zoom\" title=\"" + LANG.zoom + "\"><span class=\"icon-zoom-in\"></span></button>";
-    return "\n            <div class=\"ml-toolbar\">\n                <div class=\"ml-btn-group\">\n                    <button type=\"button\" class=\"ml-btn active\" data-ml-action=\"sort-asc\" title=\"" + LANG.sortAsc + "\"><span class=\"icon-sort-alpha-asc\"></span></button>\n                    <button type=\"button\" class=\"ml-btn\" data-ml-action=\"sort-desc\" title=\"" + LANG.sortDesc + "\"><span class=\"icon-sort-alpha-desc\"></span></button>\n                </div>\n                <div class=\"ml-btn-group\">\n                    <button type=\"button\" class=\"ml-btn\" data-ml-action=\"open-folder\" title=\"" + LANG.openFolder + "\"><span class=\"icon-folder-open\"></span></button>\n                </div>\n                <div class=\"ml-btn-group\">" + lastButton + "</div>\n                <input type=\"search\" class=\"ml-search\" placeholder=\"" + LANG.search + "\" aria-label=\"" + LANG.search + "\">\n            </div>\n            <div class=\"ml-body\">\n                <nav class=\"ml-tree\"></nav>\n                <div class=\"ml-content\" tabindex=\"-1\"></div>\n            </div>\n            <div class=\"ml-infos\"></div>\n            <div class=\"ml-alerts\" aria-live=\"polite\"></div>\n            <div class=\"ml-context-menu\" role=\"menu\" hidden></div>\n            <dialog class=\"ml-zoom\"><img alt=\"\"></dialog>\n            <dialog class=\"ml-dialog\"></dialog>";
+    var searchIcon = '<svg class="ml-search-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    return "\n            <header class=\"ml-header\">\n                <h2 class=\"ml-heading\">" + LANG.title + "</h2>\n            </header>\n            <div class=\"ml-toolbar\">\n                <nav class=\"ml-breadcrumb\" aria-label=\"Chemin\"></nav>\n                <div class=\"ml-toolbar-actions\">\n                    <div class=\"ml-segmented\" role=\"group\" aria-label=\"Tri\">\n                        <button type=\"button\" class=\"ml-segment active\" data-ml-action=\"sort-asc\" title=\"" + LANG.sortAsc + "\" aria-label=\"" + LANG.sortAsc + "\"><span class=\"icon-sort-alpha-asc\"></span></button>\n                        <button type=\"button\" class=\"ml-segment\" data-ml-action=\"sort-desc\" title=\"" + LANG.sortDesc + "\" aria-label=\"" + LANG.sortDesc + "\"><span class=\"icon-sort-alpha-desc\"></span></button>\n                    </div>\n                    <button type=\"button\" class=\"ml-icon-btn\" data-ml-action=\"open-folder\" title=\"" + LANG.openFolder + "\" aria-label=\"" + LANG.openFolder + "\"><span class=\"icon-folder-open\"></span></button>\n                    <button type=\"button\" class=\"ml-icon-btn\" data-ml-action=\"zoom\" title=\"" + LANG.zoom + "\" aria-label=\"" + LANG.zoom + "\"><span class=\"icon-zoom-in\"></span></button>\n                    <label class=\"ml-search-field\">" + searchIcon + "\n                        <input type=\"search\" class=\"ml-search\" placeholder=\"" + LANG.search + "\" aria-label=\"" + LANG.search + "\">\n                    </label>\n                </div>\n            </div>\n            <div class=\"ml-body\">\n                <nav class=\"ml-tree\" aria-label=\"Dossiers\"></nav>\n                <div class=\"ml-content\" tabindex=\"-1\"></div>\n            </div>\n            <div class=\"ml-infos\"></div>\n            <footer class=\"ml-footer\">\n                <span class=\"ml-status\" aria-live=\"polite\"></span>\n                <div class=\"ml-footer-actions\">\n                    <button type=\"button\" class=\"ml-btn\" data-ml-action=\"cancel\">" + LANG.cancel + "</button>\n                    <button type=\"button\" class=\"ml-btn ml-btn-primary\" data-ml-action=\"validate\" disabled>" + LANG.select + "</button>\n                </div>\n            </footer>\n            <div class=\"ml-alerts\" aria-live=\"polite\"></div>\n            <div class=\"ml-context-menu\" role=\"menu\" hidden></div>\n            <dialog class=\"ml-zoom\"><img alt=\"\"></dialog>\n            <dialog class=\"ml-dialog\"></dialog>";
   }
   render() {
     this.renderTree();
+    this.renderBreadcrumb();
     this.renderContent();
+  }
+  renderBreadcrumb() {
+    var path = [];
+    var folder = this.getFolder(this.activeFolderId);
+    while (folder) {
+      path.unshift(folder);
+      folder = this.getFolder(folder.parent);
+    }
+    var crumbs = [{
+      id: ROOT,
+      name: LANG.root
+    }, ...path];
+    this.find('.ml-breadcrumb').innerHTML = crumbs.map((crumb, index) => index === crumbs.length - 1 ? "<span class=\"ml-crumb ml-crumb--current\" aria-current=\"page\">" + escapeHtml(crumb.name) + "</span>" : "<button type=\"button\" class=\"ml-crumb\" data-ml-action=\"navigate\" data-folder-id=\"" + crumb.id + "\">" + escapeHtml(crumb.name) + "</button><span class=\"ml-crumb-separator\" aria-hidden=\"true\">\u203A</span>").join('');
+  }
+  updateFooter() {
+    var count = this.selectedFileIds.size;
+    this.find('.ml-status').textContent = count === 0 ? LANG.noSelection : count === 1 ? LANG.oneSelected : LANG.manySelected(count);
+    this.find('[data-ml-action="validate"]').disabled = count === 0;
   }
   renderTree() {
     var tree = this.find('.ml-tree');
@@ -223,7 +249,7 @@ export default class _class extends Controller {
         var hasChildren = this.getChildFolders(folder.id).length > 0;
         var open = this.openFolderIds.has(folder.id);
         var classes = ['ml-tree-item', open ? 'open' : '', folder.id === this.activeFolderId ? 'active' : ''].join(' ');
-        return "<li class=\"" + classes + "\" data-folder-id=\"" + folder.id + "\">\n                    " + (hasChildren ? "<span class=\"ml-expand\" data-ml-action=\"toggle\">" + (open ? '▾' : '▸') + "</span>" : '<span class="ml-expand"></span>') + "\n                    <span class=\"ml-tree-label\" data-ml-action=\"navigate\"><span class=\"" + (open ? 'icon-folder-open' : 'icon-folder') + "\"></span> " + escapeHtml(folder.name) + "</span>\n                    " + (hasChildren ? branch(folder.id) : '') + "\n                </li>";
+        return "<li class=\"" + classes + "\" data-folder-id=\"" + folder.id + "\">\n                    " + (hasChildren ? "<button type=\"button\" class=\"ml-expand\" data-ml-action=\"toggle\" aria-label=\"" + (open ? 'Replier' : 'Déplier') + "\" aria-expanded=\"" + open + "\">\u203A</button>" : '<span class="ml-expand"></span>') + "\n                    <span class=\"ml-tree-label\" data-ml-action=\"navigate\"><span class=\"" + (open ? 'icon-folder-open' : 'icon-folder') + "\"></span> " + escapeHtml(folder.name) + "</span>\n                    " + (hasChildren ? branch(folder.id) : '') + "\n                </li>";
       }).join('') + "</ul>";
     };
     tree.innerHTML = "<ul><li class=\"ml-tree-item open " + (this.activeFolderId === ROOT ? 'active' : '') + "\" data-folder-id=\"" + ROOT + "\">\n            <span class=\"ml-expand\"></span>\n            <span class=\"ml-tree-label\" data-ml-action=\"navigate\"><span class=\"icon-folder-open\"></span> " + LANG.root + "</span>\n            " + branch(ROOT) + "\n        </li></ul>";
@@ -235,7 +261,13 @@ export default class _class extends Controller {
     var files = [...((_this$getFolder$files = (_this$getFolder = this.getFolder(this.activeFolderId)) == null ? void 0 : _this$getFolder.files) != null ? _this$getFolder$files : [])].sort(byName(this.sortAsc));
     this.highlightedFolderId = null;
     this.find('.ml-search').value = '';
-    content.innerHTML = folders.map(folder => "\n            <div class=\"ml-item ml-folder\" data-folder-id=\"" + folder.id + "\" title=\"" + escapeHtml(folder.name) + "\">\n                <span class=\"ml-folder-icon icon-folder\"></span>\n                <span class=\"ml-title\">" + escapeHtml(folder.name) + "</span>\n            </div>").join('') + files.map(file => "\n            <div class=\"ml-item ml-file " + (this.selectedFileIds.has(file.id) ? 'active' : '') + "\" data-file-id=\"" + file.id + "\" title=\"" + escapeHtml(file.name) + "\">\n                <div class=\"ml-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">\n                    " + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "\n                </div>\n                <span class=\"ml-title\">" + escapeHtml(file.name) + "</span>\n            </div>").join('');
+    if (folders.length === 0 && files.length === 0) {
+      content.innerHTML = "<div class=\"ml-empty\">\n                <span class=\"ml-empty-icon icon-folder-open\" aria-hidden=\"true\"></span>\n                <p class=\"ml-empty-title\">" + LANG.emptyFolder + "</p>\n                " + (this.uploadUrlValue !== '' ? "<p class=\"ml-empty-hint\">" + LANG.emptyFolderUpload + "</p>" : '') + "\n            </div>";
+      this.updateFooter();
+      return;
+    }
+    content.innerHTML = folders.map(folder => "\n            <div class=\"ml-item ml-folder\" data-folder-id=\"" + folder.id + "\" title=\"" + escapeHtml(folder.name) + "\">\n                <div class=\"ml-thumb ml-thumb--folder\"><span class=\"icon-folder\" aria-hidden=\"true\"></span></div>\n                <span class=\"ml-title\">" + escapeHtml(folder.name) + "</span>\n            </div>").join('') + files.map(file => "\n            <div class=\"ml-item ml-file " + (this.selectedFileIds.has(file.id) ? 'active' : '') + "\" data-file-id=\"" + file.id + "\" title=\"" + escapeHtml(file.name) + "\">\n                <div class=\"ml-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">\n                    " + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "\n                </div>\n                <span class=\"ml-title\">" + escapeHtml(file.name) + "</span>\n            </div>").join('');
+    this.updateFooter();
   }
 
   // ---- Events ----------------------------------------------------------
@@ -294,10 +326,10 @@ export default class _class extends Controller {
     this.rendered = false;
   }
   onClick(event) {
-    var _target$closest;
+    var _target$closest, _target$closest2;
     var target = event.target;
     var action = (_target$closest = target.closest('[data-ml-action]')) == null ? void 0 : _target$closest.dataset.mlAction;
-    var treeItem = target.closest('.ml-tree-item');
+    var folderId = Number((_target$closest2 = target.closest('[data-folder-id]')) == null ? void 0 : _target$closest2.dataset.folderId);
     switch (action) {
       case 'sort-asc':
       case 'sort-desc':
@@ -313,14 +345,17 @@ export default class _class extends Controller {
       case 'zoom':
         this.zoom();
         return;
+      case 'cancel':
+        this.close();
+        return;
       case 'validate':
         this.select([...this.selectedFileIds]);
         return;
       case 'toggle':
-        this.toggleFolder(Number(treeItem.dataset.folderId));
+        this.toggleFolder(folderId);
         return;
       case 'navigate':
-        this.navigate(Number(treeItem.dataset.folderId));
+        this.navigate(folderId);
         return;
     }
     if (!target.closest('.ml-content')) {
@@ -338,6 +373,7 @@ export default class _class extends Controller {
       this.highlightedFolderId = null;
       this.selectedFileIds.clear();
     }
+    this.updateFooter();
   }
   onDblClick(event) {
     var target = event.target;
