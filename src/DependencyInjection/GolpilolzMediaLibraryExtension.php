@@ -2,11 +2,9 @@
 
 namespace Golpilolz\MediaLibrary\DependencyInjection;
 
-use Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader;
@@ -51,12 +49,6 @@ class GolpilolzMediaLibraryExtension extends Extension implements PrependExtensi
         foreach ($config as $key => $value) {
             $container->setParameter('golpilolz_medialibrary.' . $key, $value);
         }
-
-        $container
-            ->setDefinition('form.golpilolz-medialibrary-single', new Definition(GolpilolzMediaLibrarySingleType::class))
-            ->addTag('form.type')
-            ->setPublic(false)
-        ;
     }
 
     private function isAssetMapperAvailable(ContainerBuilder $container): bool

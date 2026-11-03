@@ -8,12 +8,13 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class GolpilolzMediaLibrarySingleType extends AbstractType
 {
     protected $prefix;
 
-    public function __construct()
+    public function __construct(private readonly UrlGeneratorInterface $urlGenerator)
     {
         $this->prefix = 'test';
     }
@@ -38,8 +39,9 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             'prefix' => '',
             'class' => File::class,
             'choice_label' => 'name',
-            // URL receiving Dropzone uploads (drag & drop into the library). Upload is disabled when null.
-            'upload_url' => null,
+            // URL receiving Dropzone uploads (drag & drop into the library): the bundle's endpoint
+            // by default. Upload is disabled when null.
+            'upload_url' => $this->urlGenerator->generate('golpilolz_media-library_upload'),
         ]);
         $resolver->setAllowedTypes('prefix', ['string']);
         $resolver->setAllowedTypes('upload_url', ['null', 'string']);

@@ -73,6 +73,7 @@ const LANG = {
     errorAddFolder: 'Erreur lors de la création du dossier',
     errorAction: 'Une erreur est survenue',
     errorUpload: "Erreur lors de l'envoi du fichier",
+    errorUploadRoot: 'Ouvrez un dossier pour y déposer des fichiers',
     successRenameFile: 'Le fichier a bien été renommé',
     successRenameFolder: 'Le dossier a bien été renommé',
     successUploadFile: 'Le fichier a bien été envoyé',
@@ -359,7 +360,7 @@ export default class extends Controller {
             content.innerHTML = `<div class="ml-empty">
                 <span class="ml-empty-icon icon-folder-open" aria-hidden="true"></span>
                 <p class="ml-empty-title">${LANG.emptyFolder}</p>
-                ${this.uploadUrlValue !== '' ? `<p class="ml-empty-hint">${LANG.emptyFolderUpload}</p>` : ''}
+                ${this.uploadUrlValue !== '' && this.activeFolderId !== ROOT ? `<p class="ml-empty-hint">${LANG.emptyFolderUpload}</p>` : ''}
             </div>`
             this.updateFooter()
             return
@@ -843,6 +844,8 @@ export default class extends Controller {
             url: this.uploadUrlValue,
             previewsContainer: this.find('.ml-infos'),
             clickable: false,
+            // Files belong to a folder: the root has none to store them in.
+            accept: (file: File, done: (error?: string) => void) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
             resizeWidth: 1920,
             previewTemplate: `<div class="dz-preview dz-file-preview">
                 <div class="dz-details"><img data-dz-thumbnail alt=""><span class="dz-filename" data-dz-name></span></div>
@@ -873,7 +876,7 @@ export default class extends Controller {
         })
         dropzone.on('error', (file: File, message: unknown) => {
             console.error(message)
-            this.alert(LANG.errorUpload, 'danger')
+            this.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger')
         })
         dropzone.on('complete', (file: any) => file.previewElement?.remove())
 
