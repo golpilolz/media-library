@@ -2,157 +2,871 @@
 
 import {Controller} from '@hotwired/stimulus';
 
-export default class extends Controller {
-    declare readonly inputTarget: HTMLInputElement
-    declare readonly showPopupTarget: HTMLDivElement
-    declare readonly popupTarget: HTMLDivElement
-    declare readonly closePopupTarget: HTMLButtonElement
-    declare readonly loaderTarget: HTMLDivElement
-    declare readonly contentTarget: HTMLDivElement
-    declare folders: Array<any>
-    declare activeFolder: number;
+interface MediaFile {
+    id: number
+    name: string
+    url: string
+}
 
-    // static elements: Array<any> =  [['nav', 'search'], ['options'], ['tree', 'content', 'modalimg'], ['infos']]
-    static elements: Array<any> = [['browse', 'search'], ['options'], ['tree', 'content'], ['infos']]
-    static targets = ['select', 'showPopup', 'popup', 'closePopup', 'loader']
-    static templates = {
-        'nav': '',
-        'browse': '<div id="browse" class="browse"><div class="btn-group" role="group"><button type="button" class="btn btn-default btn-sort asc active"><span class="icon-sort-alpha-asc"></span></button><button type="button" class="btn btn-default btn-sort desc"><span class="icon-sort-alpha-desc"></span></button></div><div class="btn-group" role="group"><button type="button" class="btn btn-default open-folder"><span class="icon-folder-open"></span></button></div><div class="btn-group" role="group"><button type="button" class="btn btn-default zoom-file"><span class="icon-zoom-in"></span></button></div></div>',
-        'search': '<div id="search"><input type="text" class="form-control" id="search-input" placeholder="Rechercher un fichier"> </div>',
-        'options': '<div id="options"></div>',
-        'tree': '<div id="tree"></div>',
-        'content': '<div id="content"></div>',
-        'infos': '<div id="infos"></div>',
-        'modalimg': '<div id="modal-zoom-img" class="modal"><img class="modal-content" id="modal-zoom-img-content"></div>',
-        alert: '<div id="${Id}" class="alert alert-dismissable bbl-alert ${State}"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button><p>${Content}</p></div>'
-    }
+interface MediaFolder {
+    id: number
+    name: string
+    type?: string
+    parent: number | null
+    active?: boolean
+    open?: boolean
+    files?: MediaFile[]
+}
 
-    static templateFiles = {
-        'default': {
-            'folders': '<div class="folder"><span class="fa fa-folder"></span><span class="title" data-bbl-title></span></div>',
-            'files': '<div class="file"><div data-bbl-img></div><span class="title" data-bbl-title></span></div>',
-            'previewFile': '<div class="dz-preview dz-file-preview"><div class="dz-details"><img data-dz-thumbnail /><div class="dz-filename"><span data-dz-name></span></div></div><div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div></div>'
+interface DialogButton {
+    label: string
+    className?: string
+    // Return false (or throw) to keep the dialog open.
+    action?: (dialog: HTMLDialogElement) => void | boolean | Promise<void | boolean>
+}
+
+interface MenuItem {
+    label: string
+    action: () => void
+}
+
+const ROOT = 0
+const EVENT_PREFIX = 'golpilolz_media-library'
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp']
+const ICONS: Record<string, string[]> = {
+    pdf: ['pdf'],
+    doc: ['doc', 'docx', 'odt', 'rtf'],
+    xls: ['xls', 'xlsx', 'ods', 'csv'],
+    zip: ['zip', 'rar', '7z', 'gz', 'tar'],
+}
+
+const LANG = {
+    root: 'Accueil',
+    search: 'Rechercher un fichier',
+    sortAsc: 'Trier de A à Z',
+    sortDesc: 'Trier de Z à A',
+    openFolder: 'Ouvrir le dossier',
+    zoom: 'Agrandir',
+    validate: 'Valider la sélection',
+    label: 'Libellé',
+    cancel: 'Annuler',
+    rename: 'Renommer',
+    move: 'Déplacer',
+    delete: 'Supprimer',
+    add: 'Ajouter',
+    newFolder: 'Nouveau dossier',
+    titleRenameFile: 'Renommer le fichier',
+    titleRenameFolder: 'Renommer le dossier',
+    titleAddFolder: 'Ajouter un dossier',
+    titleMoveFile: 'Déplacer le fichier',
+    titleDeleteFile: 'Supprimer le fichier ?',
+    confirmDeleteFile: 'Êtes-vous sûr de vouloir supprimer le fichier :',
+    emptyLabel: 'Veuillez entrer un libellé',
+    emptyTarget: 'Veuillez choisir un dossier',
+    errorAddFolder: 'Erreur lors de la création du dossier',
+    errorAction: 'Une erreur est survenue',
+    errorUpload: "Erreur lors de l'envoi du fichier",
+    successRenameFile: 'Le fichier a bien été renommé',
+    successRenameFolder: 'Le dossier a bien été renommé',
+    successUploadFile: 'Le fichier a bien été envoyé',
+    successMoveFile: 'Le fichier a bien été déplacé',
+    successDeleteFile: 'Le fichier a bien été supprimé',
+}
+
+const escapeHtml = (value: unknown): string => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const extension = (url: string): string => {
+    const path = url.split(/[?#]/)[0]
+    const dot = path.lastIndexOf('.')
+    return dot === -1 ? '' : path.slice(dot + 1).toLowerCase()
+}
+
+const isImage = (file: MediaFile): boolean => IMAGE_EXTENSIONS.includes(extension(file.url))
+
+const iconFor = (file: MediaFile): string => {
+    const ext = extension(file.url)
+    for (const [icon, extensions] of Object.entries(ICONS)) {
+        if (extensions.includes(ext)) {
+            return icon
         }
     }
+    return 'txt'
+}
+
+const byName = (asc: boolean) => (a: { name: string }, b: { name: string }): number =>
+    (asc ? 1 : -1) * a.name.localeCompare(b.name, undefined, {sensitivity: 'base', numeric: true})
+
+export default class extends Controller {
+    static targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled']
+    static values = {
+        foldersUrl: String,
+        uploadUrl: {type: String, default: ''},
+        multiple: {type: Boolean, default: false},
+    }
+
+    declare readonly inputTargets: HTMLInputElement[]
+    declare readonly popupTarget: HTMLElement
+    declare readonly contentTarget: HTMLElement
+    declare readonly loaderTarget: HTMLElement
+    declare readonly hasPreviewTarget: boolean
+    declare readonly previewTarget: HTMLElement
+    declare readonly emptyTargets: HTMLElement[]
+    declare readonly filledTargets: HTMLElement[]
+    declare readonly foldersUrlValue: string
+    declare readonly uploadUrlValue: string
+    declare readonly multipleValue: boolean
+
+    private folders: MediaFolder[] = []
+    private activeFolderId: number = ROOT
+    private openFolderIds = new Set<number>()
+    private selectedFileIds = new Set<number>()
+    private highlightedFolderId: number | null = null
+    private sortAsc = true
+    private rendered = false
+    private abort: AbortController | null = null
+    private dropzone: any = null
+    // Bumped by every open()/close(): an open() whose await resumes after a newer
+    // open() or a close() must stop, or it would re-render or attach a second Dropzone.
+    private session = 0
 
     connect() {
-        this.activeFolder = 0;
-        this.clear()
-        this.showPopupTarget.addEventListener('click', (event) => this.onShowPopup(event))
-        this.closePopupTarget.addEventListener('click', (event) => this.onClosePopup(event))
+        this.toggleButtons()
         this.dispatchEvent('connect')
     }
 
-    clear() {
-        /*this.inputTarget.value = '';
-        this.inputTarget.style.display = 'block';
-        this.placeholderTarget.style.display = 'block';
-        this.previewTarget.style.display = 'none';
-        this.previewImageTarget.style.display = 'none';
-        this.previewImageTarget.style.backgroundImage = 'none';
-        this.previewFilenameTarget.textContent = '';*/
-
-        this.dispatchEvent('clear')
+    disconnect() {
+        this.teardown()
     }
 
-    private getChildFolder(parent: number) {
-        const child = [];
-        for (const folder of this.folders) {
-            if (folder.parent === parent)
-                child.push(folder);
-        }
-        return child;
-    }
+    // ---- Stimulus actions ------------------------------------------------
 
-    private getFiles(parent: number) {
-        if (parent === 0) {
-            return [];
-        }
-        const files = [];
-        const folder = this.folders.find((folder) => folder.id === parent)
-        if (folder === undefined) {
-            return [];
-        }
-
-        return folder.files;
-    }
-
-    onShowPopup(event: Event) {
+    async open() {
+        const session = ++this.session
         this.popupTarget.classList.add('show')
-        const url = this.popupTarget.dataset.folderUrl
+        this.loaderTarget.hidden = false
+        this.selectedFileIds = new Set(this.inputValues())
 
-        this.initInterface()
+        if (!this.rendered) {
+            this.contentTarget.innerHTML = this.layoutTemplate()
+            this.bindEvents()
+            this.rendered = true
+        }
 
-        fetch(url).then(response => response.json()).then(data => {
-            this.loaderTarget.style.display = 'none'
-            this.folders = data
-            this.show()
-        });
+        let folders: MediaFolder[] | null = null
+        try {
+            folders = await this.fetchFolders()
+        } catch (error) {
+            console.error(error)
+        }
+        if (session !== this.session) {
+            return
+        }
+        this.loaderTarget.hidden = true
+        if (folders === null) {
+            this.alert(LANG.errorAction, 'danger')
+        } else {
+            this.setFolders(folders)
+        }
+
+        this.render()
+        await this.initDropzone(session)
         this.dispatchEvent('showPopup')
     }
 
-    onClosePopup(event: Event) {
+    close() {
+        this.session++
         this.popupTarget.classList.remove('show')
+        this.closeContextMenu()
+        this.destroyDropzone()
         this.dispatchEvent('closePopup')
     }
 
-    private initInterface() {
-        for (const element of (this.constructor as any).elements) {
-            let div = document.createElement('div')
-            div.classList.add('content-div')
-            for (const target of element) {
-                div.innerHTML += (this.constructor as any).templates[target]
-            }
-            const contentBodies = this.popupTarget.getElementsByClassName('media-library-content')
-            contentBodies.item(0).appendChild(div)
+    clear() {
+        this.writeValue([])
+        this.dispatchEvent('clear')
+    }
+
+    // ---- Data ------------------------------------------------------------
+
+    private async fetchFolders(): Promise<MediaFolder[]> {
+        const response = await fetch(this.foldersUrlValue, {headers: {Accept: 'application/json'}})
+        if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText}`)
         }
+        return response.json()
     }
 
-    private show() {
-        this.drawTree()
-        this.drawContent()
-        this.dispatchEvent('show')
-    }
+    private setFolders(folders: MediaFolder[]) {
+        this.folders = folders.map(folder => ({...folder, parent: folder.parent ?? ROOT, files: folder.files ?? []}))
 
-    private drawTree() {
-        const tree = document.getElementById('tree')
-        let ul = document.createElement('ul')
+        const active = this.folders.find(folder => folder.active)
+        if (active) {
+            this.activeFolderId = active.id
+        } else if (!this.getFolder(this.activeFolderId)) {
+            this.activeFolderId = ROOT
+        }
         for (const folder of this.folders) {
-            let li = document.createElement('li')
-            li.innerHTML = `<li class="folder" data-folder-id="${folder.id}"><span class="icon-folder"></span>${folder.name}</li>`
-            ul.appendChild(li)
+            if (folder.open) {
+                this.openFolderIds.add(folder.id)
+            }
         }
-        tree.appendChild(ul)
+        this.openAncestors(this.activeFolderId)
     }
 
-    private drawContent() {
-        const content = document.getElementById('content')
-        const folders = this.getChildFolder(this.activeFolder)
-
-        let contentDiv = document.createElement('div')
-
-        for (const folder of folders) {
-            let div = document.createElement('div')
-            div.innerHTML = `<div class="folder"><span class="icon-folder"></span>${folder.name}</div>`
-            div.setAttribute('title', folder.name)
-            div.setAttribute('id', folder.id)
-            contentDiv.appendChild(div)
-        }
-
-        const files = this.getFiles(this.activeFolder)
-
-        for (const file of files) {
-            let div = document.createElement('div')
-            div.innerHTML = `<div class="file"><div data-bbl-img></div><span class="title">${file.name}</span></div>`;
-            div.setAttribute('title', file.name)
-            div.setAttribute('id', file.id)
-            contentDiv.appendChild(div)
-        }
-
-        content.appendChild(contentDiv)
+    private getFolder(id: number | null): MediaFolder | undefined {
+        return this.folders.find(folder => folder.id === id)
     }
 
-    private dispatchEvent(name: string, payload: any = {}) {
-        this.dispatch(name, {detail: payload, prefix: 'golpilolz_media-library'});
+    private getChildFolders(parent: number): MediaFolder[] {
+        return this.folders.filter(folder => folder.parent === parent)
+    }
+
+    private getFile(id: number): MediaFile | undefined {
+        for (const folder of this.folders) {
+            const file = folder.files?.find(file => file.id === id)
+            if (file) {
+                return file
+            }
+        }
+        return undefined
+    }
+
+    private getFileFolder(id: number): MediaFolder | undefined {
+        return this.folders.find(folder => folder.files?.some(file => file.id === id))
+    }
+
+    private openAncestors(id: number) {
+        let folder = this.getFolder(id)
+        while (folder && folder.parent !== ROOT) {
+            this.openFolderIds.add(folder.parent)
+            folder = this.getFolder(folder.parent)
+        }
+    }
+
+    // ---- Rendering -------------------------------------------------------
+
+    private layoutTemplate(): string {
+        const lastButton = this.multipleValue
+            ? `<button type="button" class="ml-btn" data-ml-action="validate" title="${LANG.validate}">✓</button>`
+            : `<button type="button" class="ml-btn" data-ml-action="zoom" title="${LANG.zoom}"><span class="icon-zoom-in"></span></button>`
+
+        return `
+            <div class="ml-toolbar">
+                <div class="ml-btn-group">
+                    <button type="button" class="ml-btn active" data-ml-action="sort-asc" title="${LANG.sortAsc}"><span class="icon-sort-alpha-asc"></span></button>
+                    <button type="button" class="ml-btn" data-ml-action="sort-desc" title="${LANG.sortDesc}"><span class="icon-sort-alpha-desc"></span></button>
+                </div>
+                <div class="ml-btn-group">
+                    <button type="button" class="ml-btn" data-ml-action="open-folder" title="${LANG.openFolder}"><span class="icon-folder-open"></span></button>
+                </div>
+                <div class="ml-btn-group">${lastButton}</div>
+                <input type="search" class="ml-search" placeholder="${LANG.search}" aria-label="${LANG.search}">
+            </div>
+            <div class="ml-body">
+                <nav class="ml-tree"></nav>
+                <div class="ml-content" tabindex="-1"></div>
+            </div>
+            <div class="ml-infos"></div>
+            <div class="ml-alerts" aria-live="polite"></div>
+            <div class="ml-context-menu" role="menu" hidden></div>
+            <dialog class="ml-zoom"><img alt=""></dialog>
+            <dialog class="ml-dialog"></dialog>`
+    }
+
+    private render() {
+        this.renderTree()
+        this.renderContent()
+    }
+
+    private renderTree() {
+        const tree = this.find('.ml-tree')
+        const branch = (parent: number): string => {
+            const children = this.getChildFolders(parent).sort(byName(true))
+            if (children.length === 0) {
+                return ''
+            }
+            return `<ul>${children.map(folder => {
+                const hasChildren = this.getChildFolders(folder.id).length > 0
+                const open = this.openFolderIds.has(folder.id)
+                const classes = ['ml-tree-item', open ? 'open' : '', folder.id === this.activeFolderId ? 'active' : ''].join(' ')
+                return `<li class="${classes}" data-folder-id="${folder.id}">
+                    ${hasChildren ? `<span class="ml-expand" data-ml-action="toggle">${open ? '▾' : '▸'}</span>` : '<span class="ml-expand"></span>'}
+                    <span class="ml-tree-label" data-ml-action="navigate"><span class="${open ? 'icon-folder-open' : 'icon-folder'}"></span> ${escapeHtml(folder.name)}</span>
+                    ${hasChildren ? branch(folder.id) : ''}
+                </li>`
+            }).join('')}</ul>`
+        }
+
+        tree.innerHTML = `<ul><li class="ml-tree-item open ${this.activeFolderId === ROOT ? 'active' : ''}" data-folder-id="${ROOT}">
+            <span class="ml-expand"></span>
+            <span class="ml-tree-label" data-ml-action="navigate"><span class="icon-folder-open"></span> ${LANG.root}</span>
+            ${branch(ROOT)}
+        </li></ul>`
+    }
+
+    private renderContent() {
+        const content = this.find('.ml-content')
+        const folders = this.getChildFolders(this.activeFolderId).sort(byName(this.sortAsc))
+        const files = [...(this.getFolder(this.activeFolderId)?.files ?? [])].sort(byName(this.sortAsc))
+
+        this.highlightedFolderId = null
+        this.find<HTMLInputElement>('.ml-search').value = ''
+
+        content.innerHTML = folders.map(folder => `
+            <div class="ml-item ml-folder" data-folder-id="${folder.id}" title="${escapeHtml(folder.name)}">
+                <span class="ml-folder-icon icon-folder"></span>
+                <span class="ml-title">${escapeHtml(folder.name)}</span>
+            </div>`).join('')
+            + files.map(file => `
+            <div class="ml-item ml-file ${this.selectedFileIds.has(file.id) ? 'active' : ''}" data-file-id="${file.id}" title="${escapeHtml(file.name)}">
+                <div class="ml-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">
+                    ${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}
+                </div>
+                <span class="ml-title">${escapeHtml(file.name)}</span>
+            </div>`).join('')
+    }
+
+    // ---- Events ----------------------------------------------------------
+
+    private bindEvents() {
+        this.abort = new AbortController()
+        const signal = this.abort.signal
+        const root = this.contentTarget
+
+        root.addEventListener('click', event => this.onClick(event as MouseEvent), {signal})
+        root.addEventListener('dblclick', event => this.onDblClick(event as MouseEvent), {signal})
+        root.addEventListener('contextmenu', event => this.onContextMenu(event as MouseEvent), {signal})
+        // Enter in the search box must not submit the surrounding Symfony form.
+        root.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && (event.target as HTMLElement).matches('.ml-search')) {
+                event.preventDefault()
+            }
+        }, {signal})
+        root.addEventListener('input', event => {
+            if ((event.target as HTMLElement).matches('.ml-search')) {
+                this.filter((event.target as HTMLInputElement).value)
+            }
+        }, {signal})
+        document.addEventListener('click', event => {
+            if (!(event.target as HTMLElement).closest('.ml-context-menu')) {
+                this.closeContextMenu()
+            }
+        }, {signal})
+        document.addEventListener('keydown', event => this.onKeydown(event), {signal})
+        this.find('.ml-content').addEventListener('scroll', () => this.closeContextMenu(), {signal})
+        this.find('.ml-zoom').addEventListener('click', event => (event.currentTarget as HTMLDialogElement).close(), {signal})
+    }
+
+    private teardown() {
+        this.session++
+        this.abort?.abort()
+        this.abort = null
+        this.destroyDropzone()
+        this.rendered = false
+    }
+
+    private onClick(event: MouseEvent) {
+        const target = event.target as HTMLElement
+        const action = target.closest<HTMLElement>('[data-ml-action]')?.dataset.mlAction
+        const treeItem = target.closest<HTMLElement>('.ml-tree-item')
+
+        switch (action) {
+            case 'sort-asc':
+            case 'sort-desc':
+                this.sortAsc = action === 'sort-asc'
+                this.findAll('[data-ml-action^="sort-"]').forEach(button =>
+                    button.classList.toggle('active', button.dataset.mlAction === action))
+                this.renderContent()
+                return
+            case 'open-folder':
+                if (this.highlightedFolderId !== null) {
+                    this.navigate(this.highlightedFolderId)
+                }
+                return
+            case 'zoom':
+                this.zoom()
+                return
+            case 'validate':
+                this.select([...this.selectedFileIds])
+                return
+            case 'toggle':
+                this.toggleFolder(Number(treeItem.dataset.folderId))
+                return
+            case 'navigate':
+                this.navigate(Number(treeItem.dataset.folderId))
+                return
+        }
+
+        if (!target.closest('.ml-content')) {
+            return
+        }
+
+        const folder = target.closest<HTMLElement>('.ml-folder')
+        const file = target.closest<HTMLElement>('.ml-file')
+
+        if (folder) {
+            this.highlight(folder)
+            this.highlightedFolderId = Number(folder.dataset.folderId)
+        } else if (file) {
+            this.toggleFile(file)
+        } else {
+            this.findAll('.ml-content .ml-item.active').forEach(item => item.classList.remove('active'))
+            this.highlightedFolderId = null
+            this.selectedFileIds.clear()
+        }
+    }
+
+    private onDblClick(event: MouseEvent) {
+        const target = event.target as HTMLElement
+        const folder = target.closest<HTMLElement>('.ml-content .ml-folder')
+        const file = target.closest<HTMLElement>('.ml-content .ml-file')
+
+        if (folder) {
+            this.navigate(Number(folder.dataset.folderId))
+        } else if (file && !this.multipleValue) {
+            this.select([Number(file.dataset.fileId)])
+        }
+    }
+
+    private onKeydown(event: KeyboardEvent) {
+        if (event.key !== 'Escape' || !this.popupTarget.classList.contains('show')) {
+            return
+        }
+        // Open <dialog>s handle Escape themselves.
+        if (this.contentTarget.querySelector('dialog[open]')) {
+            return
+        }
+        if (!this.find('.ml-context-menu').hidden) {
+            this.closeContextMenu()
+            return
+        }
+        this.close()
+    }
+
+    private highlight(item: HTMLElement) {
+        this.findAll('.ml-content .ml-folder.active').forEach(other => other.classList.remove('active'))
+        if (!this.multipleValue) {
+            this.findAll('.ml-content .ml-item.active').forEach(other => other.classList.remove('active'))
+            this.selectedFileIds.clear()
+        }
+        item.classList.add('active')
+    }
+
+    private toggleFile(item: HTMLElement) {
+        const id = Number(item.dataset.fileId)
+        if (this.multipleValue) {
+            item.classList.toggle('active')
+            item.classList.contains('active') ? this.selectedFileIds.add(id) : this.selectedFileIds.delete(id)
+            return
+        }
+        this.highlight(item)
+        this.highlightedFolderId = null
+        this.selectedFileIds = new Set([id])
+    }
+
+    private navigate(id: number) {
+        this.activeFolderId = id
+        this.openAncestors(id)
+        if (id !== ROOT) {
+            this.openFolderIds.add(id)
+        }
+        this.render()
+    }
+
+    private toggleFolder(id: number) {
+        this.openFolderIds.has(id) ? this.openFolderIds.delete(id) : this.openFolderIds.add(id)
+        this.renderTree()
+    }
+
+    private filter(search: string) {
+        const needle = search.trim().toLocaleUpperCase()
+        this.findAll('.ml-content .ml-item').forEach(item => {
+            const title = item.querySelector('.ml-title')?.textContent ?? ''
+            item.hidden = needle !== '' && !title.toLocaleUpperCase().includes(needle)
+        })
+    }
+
+    private zoom() {
+        const id = [...this.selectedFileIds][0]
+        const file = id === undefined ? undefined : this.getFile(id)
+        if (!file || !isImage(file)) {
+            return
+        }
+        const dialog = this.find<HTMLDialogElement>('.ml-zoom')
+        dialog.querySelector('img').src = file.url
+        dialog.showModal()
+    }
+
+    // ---- Selection / form value -----------------------------------------
+
+    private select(ids: number[]) {
+        const files = ids.map(id => this.getFile(id)).filter((file): file is MediaFile => file !== undefined)
+        if (files.length === 0) {
+            return
+        }
+        this.writeValue(files.map(file => file.id), files)
+        this.dispatchEvent('select', {files})
+        this.close()
+    }
+
+    private inputValues(): number[] {
+        return this.inputTargets.map(input => input.value).filter(value => value !== '').map(Number)
+    }
+
+    // Single: one hidden input. Multiple: one hidden input per id (name ends with []).
+    private writeValue(ids: number[], files: MediaFile[] = []) {
+        const [first, ...extra] = this.inputTargets
+        extra.forEach(input => input.remove())
+        first.value = ids.length > 0 ? String(ids[0]) : ''
+        let previous = first
+        for (const id of ids.slice(1)) {
+            const input = first.cloneNode() as HTMLInputElement
+            input.removeAttribute('id')
+            input.value = String(id)
+            previous.after(input)
+            previous = input
+        }
+        first.dispatchEvent(new Event('change', {bubbles: true}))
+
+        if (this.hasPreviewTarget) {
+            this.previewTarget.innerHTML = files.map(file => isImage(file)
+                ? `<img class="ml-preview-img" src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}">`
+                : `<span class="ml-preview-name">${escapeHtml(file.name)}</span>`).join('')
+        }
+        this.toggleButtons()
+    }
+
+    private toggleButtons() {
+        const filled = this.inputValues().length > 0
+        this.emptyTargets.forEach(element => element.hidden = filled)
+        this.filledTargets.forEach(element => element.hidden = !filled)
+    }
+
+    // ---- Context menu ----------------------------------------------------
+
+    private onContextMenu(event: MouseEvent) {
+        const target = event.target as HTMLElement
+        if (!target.closest('.ml-content')) {
+            return
+        }
+        event.preventDefault()
+
+        const folderElement = target.closest<HTMLElement>('.ml-folder')
+        const fileElement = target.closest<HTMLElement>('.ml-file')
+        let items: MenuItem[]
+
+        if (folderElement) {
+            const folder = this.getFolder(Number(folderElement.dataset.folderId))
+            items = [{label: LANG.rename, action: () => this.renameFolder(folder)}]
+        } else if (fileElement) {
+            const file = this.getFile(Number(fileElement.dataset.fileId))
+            items = [
+                {label: LANG.rename, action: () => this.renameFile(file)},
+                {label: LANG.move, action: () => this.moveFile(file)},
+                {label: LANG.delete, action: () => this.deleteFile(file)},
+            ]
+        } else {
+            items = [{label: LANG.newFolder, action: () => this.addFolder()}]
+        }
+
+        const menu = this.find('.ml-context-menu')
+        menu.innerHTML = items.map((item, index) =>
+            `<button type="button" role="menuitem" class="ml-context-item" data-index="${index}">${escapeHtml(item.label)}</button>`).join('')
+        menu.querySelectorAll<HTMLButtonElement>('.ml-context-item').forEach(button => {
+            button.addEventListener('click', () => {
+                this.closeContextMenu()
+                items[Number(button.dataset.index)].action()
+            })
+        })
+        menu.hidden = false
+
+        // Keep the menu inside the viewport.
+        const {innerWidth, innerHeight} = window
+        const {width, height} = menu.getBoundingClientRect()
+        menu.style.left = `${Math.min(event.clientX, innerWidth - width - 4)}px`
+        menu.style.top = `${Math.min(event.clientY, innerHeight - height - 4)}px`
+        menu.querySelector<HTMLButtonElement>('button')?.focus()
+    }
+
+    private closeContextMenu() {
+        const menu = this.contentTarget.querySelector<HTMLElement>('.ml-context-menu')
+        if (menu) {
+            menu.hidden = true
+        }
+    }
+
+    // ---- Actions with dialogs -------------------------------------------
+    //
+    // Each action dispatches an event (e.g. "golpilolz_media-library:rename-file").
+    // A listener can persist the change by calling event.detail.respondWith(promise):
+    // the dialog waits for it and keeps the change local only once it resolves.
+
+    private labelForm(value = ''): string {
+        return `<label class="ml-label">${LANG.label}
+            <input type="text" class="ml-input" name="title" value="${escapeHtml(value)}" required autofocus>
+        </label>`
+    }
+
+    private readTitle(dialog: HTMLDialogElement): string {
+        const title = dialog.querySelector<HTMLInputElement>('[name="title"]').value.trim()
+        if (title === '') {
+            throw new Error(LANG.emptyLabel)
+        }
+        return title
+    }
+
+    private renameFile(file: MediaFile) {
+        this.dialog(LANG.titleRenameFile, this.labelForm(file.name), [
+            {label: LANG.cancel},
+            {
+                label: LANG.rename, className: 'ml-btn-primary', action: async dialog => {
+                    const name = this.readTitle(dialog)
+                    await this.emit('rename-file', {file, name})
+                    file.name = name
+                    this.renderContent()
+                    this.alert(LANG.successRenameFile)
+                },
+            },
+        ])
+    }
+
+    private renameFolder(folder: MediaFolder) {
+        this.dialog(LANG.titleRenameFolder, this.labelForm(folder.name), [
+            {label: LANG.cancel},
+            {
+                label: LANG.rename, className: 'ml-btn-primary', action: async dialog => {
+                    const name = this.readTitle(dialog)
+                    await this.emit('rename-folder', {folder, name})
+                    folder.name = name
+                    this.render()
+                    this.alert(LANG.successRenameFolder)
+                },
+            },
+        ])
+    }
+
+    private addFolder() {
+        const parent = this.activeFolderId
+        this.dialog(LANG.titleAddFolder, this.labelForm(), [
+            {label: LANG.cancel},
+            {
+                label: LANG.add, className: 'ml-btn-primary', action: async dialog => {
+                    const name = this.readTitle(dialog)
+                    let response: { id?: number } | undefined
+                    try {
+                        response = await this.emit<{ id?: number }>('add-folder', {parent: this.getFolder(parent) ?? null, name})
+                    } catch (error) {
+                        console.error(error)
+                        throw new Error(LANG.errorAddFolder)
+                    }
+                    // Without a backend id, use a temporary negative one.
+                    const id = response?.id ?? Math.min(0, ...this.folders.map(folder => folder.id)) - 1
+                    this.folders.push({id, name, type: 'folder', parent, active: false, open: false, files: []})
+                    this.render()
+                },
+            },
+        ])
+    }
+
+    private moveFile(file: MediaFile) {
+        const source = this.getFileFolder(file.id)
+        const branch = (parent: number): string => {
+            const children = this.getChildFolders(parent).sort(byName(true))
+            return children.length === 0 ? '' : `<ul>${children.map(folder => `<li>
+                <label class="ml-move-folder">
+                    <input type="radio" name="target" value="${folder.id}" ${folder.id === source?.id ? 'disabled' : ''}>
+                    <span class="icon-folder"></span> ${escapeHtml(folder.name)}
+                </label>
+                ${branch(folder.id)}
+            </li>`).join('')}</ul>`
+        }
+
+        this.dialog(LANG.titleMoveFile, `<div class="ml-move-list">${branch(ROOT)}</div>`, [
+            {label: LANG.cancel},
+            {
+                label: LANG.move, className: 'ml-btn-primary', action: async dialog => {
+                    const checked = dialog.querySelector<HTMLInputElement>('[name="target"]:checked')
+                    if (!checked) {
+                        throw new Error(LANG.emptyTarget)
+                    }
+                    const target = this.getFolder(Number(checked.value))
+                    await this.emit('move-file', {file, folder: target})
+                    if (source) {
+                        source.files = source.files.filter(other => other.id !== file.id)
+                    }
+                    target.files = [...(target.files ?? []), file]
+                    this.renderContent()
+                    this.alert(LANG.successMoveFile)
+                },
+            },
+        ])
+    }
+
+    private deleteFile(file: MediaFile) {
+        this.dialog(LANG.titleDeleteFile, `<p>${LANG.confirmDeleteFile} <strong>${escapeHtml(file.name)}</strong></p>`, [
+            {label: LANG.cancel},
+            {
+                label: LANG.delete, className: 'ml-btn-danger', action: async () => {
+                    await this.emit('delete-file', {file})
+                    const folder = this.getFileFolder(file.id)
+                    if (folder) {
+                        folder.files = folder.files.filter(other => other.id !== file.id)
+                    }
+                    this.selectedFileIds.delete(file.id)
+                    this.renderContent()
+                    this.alert(LANG.successDeleteFile)
+                },
+            },
+        ])
+    }
+
+    private dialog(title: string, body: string, buttons: DialogButton[]) {
+        // No <form> here: the widget usually sits inside the page's Symfony form, where a nested
+        // <form> is dropped by the HTML parser. All buttons are type="button" for the same reason.
+        const dialog = this.find<HTMLDialogElement>('.ml-dialog')
+        dialog.innerHTML = `<div class="ml-dialog-form">
+            <header class="ml-dialog-title">${escapeHtml(title)}</header>
+            <div class="ml-dialog-body">${body}</div>
+            <p class="ml-dialog-error" hidden></p>
+            <footer class="ml-dialog-buttons">${buttons.map((button, index) =>
+            `<button type="button" class="ml-btn ${button.className ?? ''}" data-index="${index}">${escapeHtml(button.label)}</button>`).join('')}
+            </footer>
+        </div>`
+
+        const error = dialog.querySelector<HTMLElement>('.ml-dialog-error')
+        const run = async (button: DialogButton, element: HTMLButtonElement) => {
+            error.hidden = true
+            element.disabled = true
+            try {
+                if (button.action && await button.action(dialog) === false) {
+                    return
+                }
+                dialog.close()
+            } catch (e) {
+                error.textContent = e instanceof Error ? e.message : LANG.errorAction
+                error.hidden = false
+            } finally {
+                element.disabled = false
+            }
+        }
+
+        const elements = [...dialog.querySelectorAll<HTMLButtonElement>('.ml-dialog-buttons button')]
+        elements.forEach(element => {
+            element.addEventListener('click', () => run(buttons[Number(element.dataset.index)], element))
+        })
+        // Enter in an input triggers the last (primary) button.
+        dialog.querySelector('.ml-dialog-body').addEventListener('keydown', (event: KeyboardEvent) => {
+            if (event.key === 'Enter' && (event.target as HTMLElement).matches('input')) {
+                event.preventDefault()
+                const primary = elements[elements.length - 1]
+                if (!primary.disabled) {
+                    run(buttons[buttons.length - 1], primary)
+                }
+            }
+        })
+
+        dialog.showModal()
+    }
+
+    // ---- Upload (Dropzone) ----------------------------------------------
+
+    private async initDropzone(session: number) {
+        if (this.uploadUrlValue === '' || this.dropzone) {
+            return
+        }
+
+        const {default: Dropzone} = await import('dropzone')
+        if (session !== this.session || this.dropzone) {
+            return
+        }
+
+        let targetFolderId = this.activeFolderId
+        const dropzone = new Dropzone(this.find('.ml-content'), {
+            url: this.uploadUrlValue,
+            previewsContainer: this.find('.ml-infos'),
+            clickable: false,
+            resizeWidth: 1920,
+            previewTemplate: `<div class="dz-preview dz-file-preview">
+                <div class="dz-details"><img data-dz-thumbnail alt=""><span class="dz-filename" data-dz-name></span></div>
+                <div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+            </div>`,
+        })
+
+        dropzone.on('drop', (event: DragEvent) => {
+            const folder = (event.target as HTMLElement).closest<HTMLElement>('.ml-folder')
+            targetFolderId = folder ? Number(folder.dataset.folderId) : this.activeFolderId
+        })
+        dropzone.on('sending', (file: File, xhr: XMLHttpRequest, formData: FormData) => {
+            formData.append('folder', String(targetFolderId))
+            this.dispatchEvent('upload-sending', {file, folder: this.getFolder(targetFolderId) ?? null, xhr, formData})
+        })
+        dropzone.on('success', (file: File, json: any) => {
+            if (json?.result !== 'success') {
+                console.error(json)
+                this.alert(LANG.errorUpload, 'danger')
+                return
+            }
+            const folder = this.getFolder(json.file.parent)
+            if (folder) {
+                folder.files = [...(folder.files ?? []), {id: json.file.id, name: json.file.name, url: json.file.url}]
+                this.renderContent()
+            }
+            this.alert(LANG.successUploadFile)
+        })
+        dropzone.on('error', (file: File, message: unknown) => {
+            console.error(message)
+            this.alert(LANG.errorUpload, 'danger')
+        })
+        dropzone.on('complete', (file: any) => file.previewElement?.remove())
+
+        this.dropzone = dropzone
+    }
+
+    private destroyDropzone() {
+        this.dropzone?.destroy()
+        this.dropzone = null
+    }
+
+    // ---- Helpers ---------------------------------------------------------
+
+    private alert(message: string, type: 'success' | 'danger' = 'success') {
+        const alert = document.createElement('div')
+        alert.className = `ml-alert ml-alert--${type}`
+        alert.setAttribute('role', 'status')
+        alert.textContent = message
+        this.find('.ml-alerts').append(alert)
+        setTimeout(() => {
+            alert.classList.add('out')
+            setTimeout(() => alert.remove(), 300)
+        }, 5000)
+    }
+
+    // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
+    private async emit<T = unknown>(name: string, detail: object): Promise<T | undefined> {
+        let pending: Promise<T> | undefined
+        this.dispatchEvent(name, {
+            ...detail,
+            respondWith: (promise: Promise<T>) => {
+                pending = promise
+            },
+        })
+        return pending
+    }
+
+    private dispatchEvent(name: string, payload: object = {}) {
+        this.dispatch(name, {detail: payload, prefix: EVENT_PREFIX})
+    }
+
+    private find<T extends HTMLElement = HTMLElement>(selector: string): T {
+        return this.contentTarget.querySelector<T>(selector)
+    }
+
+    private findAll<T extends HTMLElement = HTMLElement>(selector: string): T[] {
+        return [...this.contentTarget.querySelectorAll<T>(selector)]
     }
 }
