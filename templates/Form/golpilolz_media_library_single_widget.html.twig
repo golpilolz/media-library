@@ -8,27 +8,43 @@
          data-{{ controller }}-folders-url-value="{{ path('golpilolz_media-library_folders') }}"
          data-{{ controller }}-upload-url-value="{{ upload_url }}"
          data-{{ controller }}-multiple-value="{{ multiple ? 'true' : 'false' }}">
-        <div class="golpilolz-media-library-preview" data-{{ controller }}-target="preview">
-            {%- for file in selected -%}
-                <span class="ml-preview-name">{{ file.name|default('') }}</span>
-            {%- endfor -%}
-        </div>
-        <div class="btn-group">
-            <button type="button" class="btn btn-primary"
-                    data-{{ controller }}-target="empty"
-                    data-action="{{ controller }}#open">
-                Ajouter des images
-            </button>
-            <button type="button" class="btn btn-primary" hidden
-                    data-{{ controller }}-target="filled"
-                    data-action="{{ controller }}#open">
-                Modifier
-            </button>
-            <button type="button" class="btn btn-danger" hidden
-                    data-{{ controller }}-target="filled"
-                    data-action="{{ controller }}#clear">
-                Supprimer
-            </button>
+        {%- set filled = ids|filter(id => id is not empty)|length > 0 -%}
+        <button type="button" class="ml-field-empty"{{ filled ? ' hidden' }}
+                data-{{ controller }}-target="empty"
+                data-action="{{ controller }}#open">
+            <span class="ml-field-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.75"/><path d="m21 16-4.5-4.5L8 20"/></svg>
+            </span>
+            <span class="ml-field-empty-text">
+                <span class="ml-field-empty-title">{{ multiple ? 'Choisir des fichiers' : 'Choisir un fichier' }}</span>
+                <span class="ml-field-empty-hint">Parcourir la médiathèque</span>
+            </span>
+        </button>
+        <div class="ml-field-filled"{{ filled ? '' : ' hidden' }} data-{{ controller }}-target="filled">
+            <div class="ml-field-preview" data-{{ controller }}-target="preview">
+                {%- for file in selected -%}
+                    {%- set url = file.url|default('') -%}
+                    {%- set ext = url|split('.')|last|lower -%}
+                    {%- set kind = ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'] ? 'picture'
+                        : ext == 'pdf' ? 'pdf'
+                        : ext in ['doc', 'docx', 'odt', 'rtf'] ? 'doc'
+                        : ext in ['xls', 'xlsx', 'ods', 'csv'] ? 'xls'
+                        : ext in ['zip', 'rar', '7z', 'gz', 'tar'] ? 'zip'
+                        : 'txt' -%}
+                    <div class="ml-preview-item" title="{{ file.name|default('') }}">
+                        <span class="ml-preview-thumb ml-thumb--{{ kind }}">
+                            {%- if kind == 'picture' and url is not empty -%}
+                                <img src="{{ url starts with 'http' or url starts with '/' ? url : app.request.basePath ~ '/' ~ url }}" alt="" loading="lazy">
+                            {%- endif -%}
+                        </span>
+                        <span class="ml-preview-name">{{ file.name|default('') }}</span>
+                    </div>
+                {%- endfor -%}
+            </div>
+            <div class="ml-field-actions">
+                <button type="button" class="ml-field-btn" data-action="{{ controller }}#open">Modifier</button>
+                <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">Retirer</button>
+            </div>
         </div>
 
         <div class="ml-popup" data-{{ controller }}-target="popup">

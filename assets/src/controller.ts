@@ -588,9 +588,11 @@ export default class extends Controller {
         first.dispatchEvent(new Event('change', {bubbles: true}))
 
         if (this.hasPreviewTarget) {
-            this.previewTarget.innerHTML = files.map(file => isImage(file)
-                ? `<img class="ml-preview-img" src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}">`
-                : `<span class="ml-preview-name">${escapeHtml(file.name)}</span>`).join('')
+            this.previewTarget.innerHTML = files.map(file => `
+                <div class="ml-preview-item" title="${escapeHtml(file.name)}">
+                    <span class="ml-preview-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}</span>
+                    <span class="ml-preview-name">${escapeHtml(file.name)}</span>
+                </div>`).join('')
         }
         this.toggleButtons()
     }
