@@ -3,12 +3,10 @@
 namespace Golpilolz\MediaLibrary\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Golpilolz\MediaLibrary\Model\FileInterface;
-use Golpilolz\MediaLibrary\Model\FolderInterface;
 use Golpilolz\MediaLibrary\Repository\FileRepository;
 
 #[ORM\Entity(repositoryClass: FileRepository::class)]
-class File implements FileInterface
+class File
 {
     const string TYPE = 'file';
 
@@ -19,7 +17,7 @@ class File implements FileInterface
 
     #[ORM\ManyToOne(targetEntity: Folder::class, inversedBy: "files")]
     #[ORM\JoinColumn(name: "folder_id", referencedColumnName: "id", nullable: true)]
-    protected FolderInterface $folder;
+    protected Folder $folder;
 
     #[ORM\Column(name: "name", type: "string", length: 255)]
     protected string $name;
@@ -54,7 +52,7 @@ class File implements FileInterface
         return $this;
     }
 
-    public function getFolder(): FolderInterface
+    public function getFolder(): Folder
     {
         return $this->folder;
     }

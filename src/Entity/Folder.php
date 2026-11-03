@@ -5,12 +5,10 @@ namespace Golpilolz\MediaLibrary\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Golpilolz\MediaLibrary\Model\FileInterface;
-use Golpilolz\MediaLibrary\Model\FolderInterface;
 use Golpilolz\MediaLibrary\Repository\FolderRepository;
 
 #[ORM\Entity(repositoryClass: FolderRepository::class)]
-class Folder implements FolderInterface
+class Folder
 {
     const string TYPE = 'folder';
 
@@ -19,15 +17,15 @@ class Folder implements FolderInterface
     #[ORM\Column]
     protected int $id;
 
-    /** @var Collection<int, FileInterface> */
+    /** @var Collection<int, File> */
     #[ORM\OneToMany(mappedBy: "folder", targetEntity: File::class)]
     protected Collection $files;
 
     #[ORM\ManyToOne(targetEntity: Folder::class, inversedBy: "children")]
     #[ORM\JoinColumn(name: "parent_id", referencedColumnName: "id", nullable: true)]
-    protected ?FolderInterface $parent;
+    protected ?Folder $parent;
 
-    /** @var Collection<int, FolderInterface> */
+    /** @var Collection<int, Folder> */
     #[ORM\OneToMany(mappedBy: "parent", targetEntity: Folder::class)]
     protected Collection $children;
 
@@ -86,7 +84,7 @@ class Folder implements FolderInterface
         return $this->parent;
     }
 
-    public function setParent(FolderInterface $parent)
+    public function setParent(Folder $parent)
     {
         $this->parent = $parent;
     }

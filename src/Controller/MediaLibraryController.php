@@ -2,7 +2,7 @@
 
 namespace Golpilolz\MediaLibrary\Controller;
 
-use Golpilolz\MediaLibrary\Model\FolderInterface;
+use Golpilolz\MediaLibrary\Entity\Folder;
 use Golpilolz\MediaLibrary\Repository\FolderRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,7 +34,7 @@ class MediaLibraryController extends AbstractController
                 'id' => $folder->getId(),
                 'type' => 'folder',
                 'name' => $folder->getName(),
-                'parent' => $parent instanceof FolderInterface ? $parent->getId() : $parent,
+                'parent' => $parent instanceof Folder ? $parent->getId() : $parent,
                 'active' => false,
                 'open' => false,
                 'files' => $jsonFiles
