@@ -46,6 +46,7 @@ var LANG = {
   errorAddFolder: 'Erreur lors de la création du dossier',
   errorAction: 'Une erreur est survenue',
   errorUpload: "Erreur lors de l'envoi du fichier",
+  errorUploadRoot: 'Ouvrez un dossier pour y déposer des fichiers',
   successRenameFile: 'Le fichier a bien été renommé',
   successRenameFolder: 'Le dossier a bien été renommé',
   successUploadFile: 'Le fichier a bien été envoyé',
@@ -262,7 +263,7 @@ export default class _class extends Controller {
     this.highlightedFolderId = null;
     this.find('.ml-search').value = '';
     if (folders.length === 0 && files.length === 0) {
-      content.innerHTML = "<div class=\"ml-empty\">\n                <span class=\"ml-empty-icon icon-folder-open\" aria-hidden=\"true\"></span>\n                <p class=\"ml-empty-title\">" + LANG.emptyFolder + "</p>\n                " + (this.uploadUrlValue !== '' ? "<p class=\"ml-empty-hint\">" + LANG.emptyFolderUpload + "</p>" : '') + "\n            </div>";
+      content.innerHTML = "<div class=\"ml-empty\">\n                <span class=\"ml-empty-icon icon-folder-open\" aria-hidden=\"true\"></span>\n                <p class=\"ml-empty-title\">" + LANG.emptyFolder + "</p>\n                " + (this.uploadUrlValue !== '' && this.activeFolderId !== ROOT ? "<p class=\"ml-empty-hint\">" + LANG.emptyFolderUpload + "</p>" : '') + "\n            </div>";
       this.updateFooter();
       return;
     }
@@ -804,6 +805,8 @@ export default class _class extends Controller {
         url: _this8.uploadUrlValue,
         previewsContainer: _this8.find('.ml-infos'),
         clickable: false,
+        // Files belong to a folder: the root has none to store them in.
+        accept: (file, done) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
         resizeWidth: 1920,
         previewTemplate: "<div class=\"dz-preview dz-file-preview\">\n                <div class=\"dz-details\"><img data-dz-thumbnail alt=\"\"><span class=\"dz-filename\" data-dz-name></span></div>\n                <div class=\"dz-progress\"><span class=\"dz-upload\" data-dz-uploadprogress></span></div>\n            </div>"
       });
@@ -841,7 +844,7 @@ export default class _class extends Controller {
       });
       dropzone.on('error', (file, message) => {
         console.error(message);
-        _this8.alert(LANG.errorUpload, 'danger');
+        _this8.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
       });
       dropzone.on('complete', file => {
         var _file$previewElement;

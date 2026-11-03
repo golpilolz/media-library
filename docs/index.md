@@ -39,6 +39,9 @@ Generate the tables with `make:migration` and `doctrine:migrations:migrate`.
 | `assets_path` | `/assets/golpilolzmedialibrary` | Public path of library assets |
 | `root_folder` | – | Root folder label |
 | `include_assets`, `include_bootstrap`, `include_jQuery` | – | Toggle bundled front-end assets |
+| `upload_dir` | `%kernel.project_dir%/public/uploads/media-library` | Where uploaded files are stored |
+| `upload_path` | `uploads/media-library` | Public path of `upload_dir`, relative to the web root |
+| `allowed_extensions` | images (no SVG), pdf, office, txt/csv, zip, mp3/mp4/webm | Extensions the upload endpoint accepts |
 
 Each key is exposed as a `golpilolz_medialibrary.<key>` container parameter.
 
@@ -50,7 +53,7 @@ use Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType;
 $builder->add('file', GolpilolzMediaLibrarySingleType::class, [
     // extends EntityType; 'class' defaults to Golpilolz\MediaLibrary\Entity\File, 'choice_label' to 'name'
     'multiple' => false,
-    'upload_url' => null,         // URL receiving drag & drop uploads; null disables upload
+    'upload_url' => null,         // drag & drop upload URL; defaults to the bundle's endpoint, null disables upload
 ]);
 ```
 
@@ -70,8 +73,15 @@ only when `upload_url` is set. Add it to the app importmap:
 php bin/console importmap:require dropzone@6.0.0-beta.2
 ```
 
+Drop files anywhere in the file grid to upload them to the current folder (or onto a folder
+tile to upload them there). Files can't be dropped at the root, which holds no files.
+
 Each dropped file is POSTed to `upload_url` (field `file`, plus `folder`: the target folder
-id, i.e. the folder it was dropped on or the current one). Respond with:
+id). The bundle's endpoint `golpilolz_media-library_upload` (`POST /media-library/upload`)
+stores it in `upload_dir` (sanitized name, suffixed on collision), rejects extensions outside
+`allowed_extensions`, and creates the `File` entity. It has no access control: protect
+`^/media-library` in `security.yaml` like the rest of your back office. A custom endpoint
+must respond with:
 
 ```json
 {"result": "success", "file": {"id": 12, "name": "photo.jpg", "url": "https://…/photo.jpg", "parent": 3}}
