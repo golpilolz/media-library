@@ -33,6 +33,7 @@ var LANG = {
   rename: 'Renommer',
   move: 'Déplacer',
   delete: 'Supprimer',
+  remove: 'Retirer',
   add: 'Ajouter',
   newFolder: 'Nouveau dossier',
   titleRenameFile: 'Renommer le fichier',
@@ -141,6 +142,22 @@ export default class _class extends Controller {
   clear() {
     this.writeValue([]);
     this.dispatchEvent('clear');
+  }
+
+  // Multiple: remove one file from the selection (preview tile's × button).
+  remove(_ref) {
+    var _this$previewTarget$q;
+    var {
+      params: {
+        id
+      }
+    } = _ref;
+    this.writeInputs(this.inputValues().filter(value => value !== id));
+    (_this$previewTarget$q = this.previewTarget.querySelector("[data-" + this.identifier + "-id-param=\"" + id + "\"]")) == null || (_this$previewTarget$q = _this$previewTarget$q.closest('.ml-preview-item')) == null || _this$previewTarget$q.remove();
+    this.toggleButtons();
+    this.dispatchEvent('remove', {
+      id
+    });
   }
 
   // ---- Data ------------------------------------------------------------
@@ -466,15 +483,24 @@ export default class _class extends Controller {
   inputValues() {
     return this.inputTargets.map(input => input.value).filter(value => value !== '').map(Number);
   }
-
-  // Single: one hidden input. Multiple: one hidden input per id (name ends with []).
   writeValue(ids, files) {
     if (files === void 0) {
       files = [];
     }
+    this.writeInputs(ids);
+    if (this.hasPreviewTarget) {
+      this.previewTarget.innerHTML = files.map(file => this.previewTemplate(file)).join('');
+    }
+    this.toggleButtons();
+  }
+
+  // Single: one hidden input. Multiple: one hidden input per id (name ends with []); an empty
+  // multiple field disables its input so it submits nothing ('' would be an invalid choice).
+  writeInputs(ids) {
     var [first, ...extra] = this.inputTargets;
     extra.forEach(input => input.remove());
     first.value = ids.length > 0 ? String(ids[0]) : '';
+    first.disabled = this.multipleValue && ids.length === 0;
     var previous = first;
     for (var id of ids.slice(1)) {
       var input = first.cloneNode();
@@ -486,15 +512,21 @@ export default class _class extends Controller {
     first.dispatchEvent(new Event('change', {
       bubbles: true
     }));
-    if (this.hasPreviewTarget) {
-      this.previewTarget.innerHTML = files.map(file => "\n                <div class=\"ml-preview-item\" title=\"" + escapeHtml(file.name) + "\">\n                    <span class=\"ml-preview-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">" + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "</span>\n                    <span class=\"ml-preview-name\">" + escapeHtml(file.name) + "</span>\n                </div>").join('');
-    }
-    this.toggleButtons();
+  }
+
+  // Keep in sync with the widget template.
+  previewTemplate(file) {
+    var name = escapeHtml(file.name);
+    return "<div class=\"ml-preview-item\" title=\"" + name + "\">\n            <span class=\"ml-preview-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">" + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "</span>\n            <span class=\"ml-preview-name\">" + name + "</span>\n            " + (this.multipleValue ? "<button type=\"button\" class=\"ml-preview-remove\" data-action=\"" + this.identifier + "#remove\" data-" + this.identifier + "-id-param=\"" + file.id + "\" aria-label=\"" + LANG.remove + " " + name + "\" title=\"" + LANG.remove + "\">\n                <svg viewBox=\"0 0 12 12\" width=\"10\" height=\"10\" aria-hidden=\"true\"><path d=\"M2 2l8 8M10 2l-8 8\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"/></svg>\n            </button>" : '') + "\n        </div>";
   }
   toggleButtons() {
     var filled = this.inputValues().length > 0;
     this.emptyTargets.forEach(element => element.hidden = filled);
     this.filledTargets.forEach(element => element.hidden = !filled);
+    if (this.hasCountTarget) {
+      var count = this.inputValues().length;
+      this.countTarget.textContent = count > 1 ? count + " fichiers" : '1 fichier';
+    }
   }
 
   // ---- Context menu ----------------------------------------------------
@@ -750,7 +782,7 @@ export default class _class extends Controller {
     }).join('') + "\n            </footer>\n        </div>";
     var error = dialog.querySelector('.ml-dialog-error');
     var run = /*#__PURE__*/function () {
-      var _ref = _asyncToGenerator(function* (button, element) {
+      var _ref2 = _asyncToGenerator(function* (button, element) {
         error.hidden = true;
         element.disabled = true;
         try {
@@ -766,7 +798,7 @@ export default class _class extends Controller {
         }
       });
       return function run(_x5, _x6) {
-        return _ref.apply(this, arguments);
+        return _ref2.apply(this, arguments);
       };
     }();
     var elements = [...dialog.querySelectorAll('.ml-dialog-buttons button')];
@@ -905,7 +937,7 @@ export default class _class extends Controller {
     return [...this.contentTarget.querySelectorAll(selector)];
   }
 }
-_class.targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled'];
+_class.targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled', 'count'];
 _class.values = {
   foldersUrl: String,
   uploadUrl: {

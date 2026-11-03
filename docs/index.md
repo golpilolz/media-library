@@ -61,6 +61,10 @@ The widget renders a button opening the popup; folders and files are loaded from
 JSON route `golpilolz_media-library_folders` (`GET /media-library/folders`). Double-click a
 file (or, with `multiple`, select files and press ✓) to write its id to the hidden input.
 
+With `multiple`, the widget shows the selected files as tiles: × removes one, "Ajouter" reopens
+the popup with the current selection preselected, "Tout retirer" clears the field. An empty
+multiple field submits nothing (its hidden input is disabled), so the collection is emptied.
+
 Right-click in the file grid for: rename / move / delete a file, rename a folder, create a
 folder. The popup has no jQuery and no CSS framework dependency (native `<dialog>`).
 
@@ -96,6 +100,7 @@ The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-lib
 | Event | `detail` |
 |---|---|
 | `select` | `files` |
+| `remove` | `id` (multiple: file removed from the widget) |
 | `rename-file` | `file`, `name` |
 | `rename-folder` | `folder`, `name` |
 | `move-file` | `file`, `folder` (target) |

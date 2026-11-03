@@ -206,6 +206,131 @@
     color: var(--ml-danger);
 }
 
+/* Single: previews stack beside the actions */
+.golpilolz-media-library-widget .ml-field-grid {
+    display: flex;
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+/* Multiple: a grid of tiles (+ the "Ajouter" tile), with the count and actions below */
+.golpilolz-media-library-widget .ml-field-filled--multiple {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 560px;
+    padding: 12px;
+}
+
+.golpilolz-media-library-widget .ml-field-filled--multiple .ml-field-grid {
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 10px;
+}
+
+.golpilolz-media-library-widget .ml-field-filled--multiple .ml-field-preview {
+    display: contents;
+}
+
+.golpilolz-media-library-widget .ml-field-filled--multiple .ml-preview-item {
+    position: relative;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.golpilolz-media-library-widget .ml-field-filled--multiple .ml-preview-thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 10px;
+    background-size: 36px;
+}
+
+.golpilolz-media-library-widget .ml-field-filled--multiple .ml-preview-name {
+    max-width: 100%;
+    font-size: 12px;
+    color: var(--ml-text-secondary);
+}
+
+.golpilolz-media-library-widget .ml-preview-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .15s var(--ml-ease), background-color .15s var(--ml-ease);
+}
+
+.golpilolz-media-library-widget .ml-preview-item:hover .ml-preview-remove,
+.golpilolz-media-library-widget .ml-preview-remove:focus-visible {
+    opacity: 1;
+}
+
+.golpilolz-media-library-widget .ml-preview-remove:hover {
+    background: var(--ml-danger);
+}
+
+.golpilolz-media-library-widget .ml-preview-remove:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ml-surface), 0 0 0 4px var(--ml-accent);
+}
+
+@media (hover: none) {
+    .golpilolz-media-library-widget .ml-preview-remove {
+        opacity: 1;
+    }
+}
+
+.golpilolz-media-library-widget .ml-field-add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    aspect-ratio: 1;
+    border: 1.5px dashed var(--ml-fill-strong);
+    border-radius: 10px;
+    background: none;
+    color: var(--ml-accent);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color .15s var(--ml-ease), background-color .15s var(--ml-ease);
+}
+
+.golpilolz-media-library-widget .ml-field-add:hover {
+    border-color: var(--ml-accent);
+    background: var(--ml-selected);
+}
+
+.golpilolz-media-library-widget .ml-field-add:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ml-selected), 0 0 0 1px var(--ml-accent);
+}
+
+.golpilolz-media-library-widget .ml-field-filled--multiple .ml-field-actions {
+    align-items: center;
+    justify-content: space-between;
+    margin-left: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--ml-separator);
+}
+
+.golpilolz-media-library-widget .ml-field-count {
+    font-size: 13px;
+    color: var(--ml-text-secondary);
+}
+
 /* ---- Overlay + panel ---- */
 
 .ml-popup {

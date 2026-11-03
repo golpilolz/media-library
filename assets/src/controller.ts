@@ -60,6 +60,7 @@ const LANG = {
     rename: 'Renommer',
     move: 'Déplacer',
     delete: 'Supprimer',
+    remove: 'Retirer',
     add: 'Ajouter',
     newFolder: 'Nouveau dossier',
     titleRenameFile: 'Renommer le fichier',
@@ -110,7 +111,7 @@ const byName = (asc: boolean) => (a: { name: string }, b: { name: string }): num
     (asc ? 1 : -1) * a.name.localeCompare(b.name, undefined, {sensitivity: 'base', numeric: true})
 
 export default class extends Controller {
-    static targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled']
+    static targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled', 'count']
     static values = {
         foldersUrl: String,
         uploadUrl: {type: String, default: ''},
@@ -125,6 +126,8 @@ export default class extends Controller {
     declare readonly previewTarget: HTMLElement
     declare readonly emptyTargets: HTMLElement[]
     declare readonly filledTargets: HTMLElement[]
+    declare readonly hasCountTarget: boolean
+    declare readonly countTarget: HTMLElement
     declare readonly foldersUrlValue: string
     declare readonly uploadUrlValue: string
     declare readonly multipleValue: boolean
@@ -197,6 +200,14 @@ export default class extends Controller {
     clear() {
         this.writeValue([])
         this.dispatchEvent('clear')
+    }
+
+    // Multiple: remove one file from the selection (preview tile's × button).
+    remove({params: {id}}: { params: { id: number } }) {
+        this.writeInputs(this.inputValues().filter(value => value !== id))
+        this.previewTarget.querySelector(`[data-${this.identifier}-id-param="${id}"]`)?.closest('.ml-preview-item')?.remove()
+        this.toggleButtons()
+        this.dispatchEvent('remove', {id})
     }
 
     // ---- Data ------------------------------------------------------------
@@ -572,11 +583,21 @@ export default class extends Controller {
         return this.inputTargets.map(input => input.value).filter(value => value !== '').map(Number)
     }
 
-    // Single: one hidden input. Multiple: one hidden input per id (name ends with []).
     private writeValue(ids: number[], files: MediaFile[] = []) {
+        this.writeInputs(ids)
+        if (this.hasPreviewTarget) {
+            this.previewTarget.innerHTML = files.map(file => this.previewTemplate(file)).join('')
+        }
+        this.toggleButtons()
+    }
+
+    // Single: one hidden input. Multiple: one hidden input per id (name ends with []); an empty
+    // multiple field disables its input so it submits nothing ('' would be an invalid choice).
+    private writeInputs(ids: number[]) {
         const [first, ...extra] = this.inputTargets
         extra.forEach(input => input.remove())
         first.value = ids.length > 0 ? String(ids[0]) : ''
+        first.disabled = this.multipleValue && ids.length === 0
         let previous = first
         for (const id of ids.slice(1)) {
             const input = first.cloneNode() as HTMLInputElement
@@ -586,21 +607,28 @@ export default class extends Controller {
             previous = input
         }
         first.dispatchEvent(new Event('change', {bubbles: true}))
+    }
 
-        if (this.hasPreviewTarget) {
-            this.previewTarget.innerHTML = files.map(file => `
-                <div class="ml-preview-item" title="${escapeHtml(file.name)}">
-                    <span class="ml-preview-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}</span>
-                    <span class="ml-preview-name">${escapeHtml(file.name)}</span>
-                </div>`).join('')
-        }
-        this.toggleButtons()
+    // Keep in sync with the widget template.
+    private previewTemplate(file: MediaFile): string {
+        const name = escapeHtml(file.name)
+        return `<div class="ml-preview-item" title="${name}">
+            <span class="ml-preview-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}</span>
+            <span class="ml-preview-name">${name}</span>
+            ${this.multipleValue ? `<button type="button" class="ml-preview-remove" data-action="${this.identifier}#remove" data-${this.identifier}-id-param="${file.id}" aria-label="${LANG.remove} ${name}" title="${LANG.remove}">
+                <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+            </button>` : ''}
+        </div>`
     }
 
     private toggleButtons() {
         const filled = this.inputValues().length > 0
         this.emptyTargets.forEach(element => element.hidden = filled)
         this.filledTargets.forEach(element => element.hidden = !filled)
+        if (this.hasCountTarget) {
+            const count = this.inputValues().length
+            this.countTarget.textContent = count > 1 ? `${count} fichiers` : '1 fichier'
+        }
     }
 
     // ---- Context menu ----------------------------------------------------
