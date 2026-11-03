@@ -29,7 +29,7 @@ The bundle ships the Doctrine entities `Golpilolz\MediaLibrary\Entity\File` and
 `Golpilolz\MediaLibrary\Repository`). They are picked up by DoctrineBundle's `auto_mapping`.
 Generate the tables with `make:migration` and `doctrine:migrations:migrate`.
 
-`Golpilolz\MediaLibrary\Model\*` holds the abstract base classes and interfaces they extend.
+They implement `Golpilolz\MediaLibrary\Model\FileInterface` / `FolderInterface`.
 
 ## Configuration
 
