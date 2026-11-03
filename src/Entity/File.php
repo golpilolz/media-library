@@ -3,12 +3,12 @@
 namespace Golpilolz\MediaLibrary\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Golpilolz\MediaLibrary\Model\File as BaseFile;
+use Golpilolz\MediaLibrary\Model\FileInterface;
 use Golpilolz\MediaLibrary\Model\FolderInterface;
 use Golpilolz\MediaLibrary\Repository\FileRepository;
 
 #[ORM\Entity(repositoryClass: FileRepository::class)]
-class File extends BaseFile
+class File implements FileInterface
 {
     const string TYPE = 'file';
 
@@ -26,4 +26,46 @@ class File extends BaseFile
 
     #[ORM\Column(name: "url", type: "string", length: 255)]
     protected string $url;
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function setName($name): static
+    {
+        $this->name = $name;
+        return $this;
+    }
+
+    public function getUrl(): string
+    {
+        return $this->url;
+    }
+
+    public function setUrl($url): static
+    {
+        $this->url = $url;
+        return $this;
+    }
+
+    public function getFolder(): FolderInterface
+    {
+        return $this->folder;
+    }
+
+    public function setFolder($folder): void
+    {
+        $this->folder = $folder;
+    }
+
+    public function getBasename(): array|string
+    {
+        return pathinfo($this->getName(), PATHINFO_FILENAME);
+    }
 }
