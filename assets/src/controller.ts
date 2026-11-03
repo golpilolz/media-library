@@ -41,7 +41,14 @@ const ICONS: Record<string, string[]> = {
 }
 
 const LANG = {
+    title: 'Médiathèque',
     root: 'Accueil',
+    select: 'Sélectionner',
+    emptyFolder: 'Ce dossier est vide',
+    emptyFolderUpload: 'Glissez des fichiers ici pour les ajouter.',
+    noSelection: 'Aucun fichier sélectionné',
+    oneSelected: '1 fichier sélectionné',
+    manySelected: (count: number) => `${count} fichiers sélectionnés`,
     search: 'Rechercher un fichier',
     sortAsc: 'Trier de A à Z',
     sortDesc: 'Trier de Z à A',
@@ -251,27 +258,38 @@ export default class extends Controller {
     // ---- Rendering -------------------------------------------------------
 
     private layoutTemplate(): string {
-        const lastButton = this.multipleValue
-            ? `<button type="button" class="ml-btn" data-ml-action="validate" title="${LANG.validate}">✓</button>`
-            : `<button type="button" class="ml-btn" data-ml-action="zoom" title="${LANG.zoom}"><span class="icon-zoom-in"></span></button>`
+        const searchIcon = '<svg class="ml-search-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
 
         return `
+            <header class="ml-header">
+                <h2 class="ml-heading">${LANG.title}</h2>
+            </header>
             <div class="ml-toolbar">
-                <div class="ml-btn-group">
-                    <button type="button" class="ml-btn active" data-ml-action="sort-asc" title="${LANG.sortAsc}"><span class="icon-sort-alpha-asc"></span></button>
-                    <button type="button" class="ml-btn" data-ml-action="sort-desc" title="${LANG.sortDesc}"><span class="icon-sort-alpha-desc"></span></button>
+                <nav class="ml-breadcrumb" aria-label="Chemin"></nav>
+                <div class="ml-toolbar-actions">
+                    <div class="ml-segmented" role="group" aria-label="Tri">
+                        <button type="button" class="ml-segment active" data-ml-action="sort-asc" title="${LANG.sortAsc}" aria-label="${LANG.sortAsc}"><span class="icon-sort-alpha-asc"></span></button>
+                        <button type="button" class="ml-segment" data-ml-action="sort-desc" title="${LANG.sortDesc}" aria-label="${LANG.sortDesc}"><span class="icon-sort-alpha-desc"></span></button>
+                    </div>
+                    <button type="button" class="ml-icon-btn" data-ml-action="open-folder" title="${LANG.openFolder}" aria-label="${LANG.openFolder}"><span class="icon-folder-open"></span></button>
+                    <button type="button" class="ml-icon-btn" data-ml-action="zoom" title="${LANG.zoom}" aria-label="${LANG.zoom}"><span class="icon-zoom-in"></span></button>
+                    <label class="ml-search-field">${searchIcon}
+                        <input type="search" class="ml-search" placeholder="${LANG.search}" aria-label="${LANG.search}">
+                    </label>
                 </div>
-                <div class="ml-btn-group">
-                    <button type="button" class="ml-btn" data-ml-action="open-folder" title="${LANG.openFolder}"><span class="icon-folder-open"></span></button>
-                </div>
-                <div class="ml-btn-group">${lastButton}</div>
-                <input type="search" class="ml-search" placeholder="${LANG.search}" aria-label="${LANG.search}">
             </div>
             <div class="ml-body">
-                <nav class="ml-tree"></nav>
+                <nav class="ml-tree" aria-label="Dossiers"></nav>
                 <div class="ml-content" tabindex="-1"></div>
             </div>
             <div class="ml-infos"></div>
+            <footer class="ml-footer">
+                <span class="ml-status" aria-live="polite"></span>
+                <div class="ml-footer-actions">
+                    <button type="button" class="ml-btn" data-ml-action="cancel">${LANG.cancel}</button>
+                    <button type="button" class="ml-btn ml-btn-primary" data-ml-action="validate" disabled>${LANG.select}</button>
+                </div>
+            </footer>
             <div class="ml-alerts" aria-live="polite"></div>
             <div class="ml-context-menu" role="menu" hidden></div>
             <dialog class="ml-zoom"><img alt=""></dialog>
@@ -280,7 +298,27 @@ export default class extends Controller {
 
     private render() {
         this.renderTree()
+        this.renderBreadcrumb()
         this.renderContent()
+    }
+
+    private renderBreadcrumb() {
+        const path: MediaFolder[] = []
+        let folder = this.getFolder(this.activeFolderId)
+        while (folder) {
+            path.unshift(folder)
+            folder = this.getFolder(folder.parent)
+        }
+        const crumbs = [{id: ROOT, name: LANG.root}, ...path]
+        this.find('.ml-breadcrumb').innerHTML = crumbs.map((crumb, index) => index === crumbs.length - 1
+            ? `<span class="ml-crumb ml-crumb--current" aria-current="page">${escapeHtml(crumb.name)}</span>`
+            : `<button type="button" class="ml-crumb" data-ml-action="navigate" data-folder-id="${crumb.id}">${escapeHtml(crumb.name)}</button><span class="ml-crumb-separator" aria-hidden="true">›</span>`).join('')
+    }
+
+    private updateFooter() {
+        const count = this.selectedFileIds.size
+        this.find('.ml-status').textContent = count === 0 ? LANG.noSelection : count === 1 ? LANG.oneSelected : LANG.manySelected(count)
+        this.find<HTMLButtonElement>('[data-ml-action="validate"]').disabled = count === 0
     }
 
     private renderTree() {
@@ -295,7 +333,7 @@ export default class extends Controller {
                 const open = this.openFolderIds.has(folder.id)
                 const classes = ['ml-tree-item', open ? 'open' : '', folder.id === this.activeFolderId ? 'active' : ''].join(' ')
                 return `<li class="${classes}" data-folder-id="${folder.id}">
-                    ${hasChildren ? `<span class="ml-expand" data-ml-action="toggle">${open ? '▾' : '▸'}</span>` : '<span class="ml-expand"></span>'}
+                    ${hasChildren ? `<button type="button" class="ml-expand" data-ml-action="toggle" aria-label="${open ? 'Replier' : 'Déplier'}" aria-expanded="${open}">›</button>` : '<span class="ml-expand"></span>'}
                     <span class="ml-tree-label" data-ml-action="navigate"><span class="${open ? 'icon-folder-open' : 'icon-folder'}"></span> ${escapeHtml(folder.name)}</span>
                     ${hasChildren ? branch(folder.id) : ''}
                 </li>`
@@ -317,9 +355,19 @@ export default class extends Controller {
         this.highlightedFolderId = null
         this.find<HTMLInputElement>('.ml-search').value = ''
 
+        if (folders.length === 0 && files.length === 0) {
+            content.innerHTML = `<div class="ml-empty">
+                <span class="ml-empty-icon icon-folder-open" aria-hidden="true"></span>
+                <p class="ml-empty-title">${LANG.emptyFolder}</p>
+                ${this.uploadUrlValue !== '' ? `<p class="ml-empty-hint">${LANG.emptyFolderUpload}</p>` : ''}
+            </div>`
+            this.updateFooter()
+            return
+        }
+
         content.innerHTML = folders.map(folder => `
             <div class="ml-item ml-folder" data-folder-id="${folder.id}" title="${escapeHtml(folder.name)}">
-                <span class="ml-folder-icon icon-folder"></span>
+                <div class="ml-thumb ml-thumb--folder"><span class="icon-folder" aria-hidden="true"></span></div>
                 <span class="ml-title">${escapeHtml(folder.name)}</span>
             </div>`).join('')
             + files.map(file => `
@@ -329,6 +377,7 @@ export default class extends Controller {
                 </div>
                 <span class="ml-title">${escapeHtml(file.name)}</span>
             </div>`).join('')
+        this.updateFooter()
     }
 
     // ---- Events ----------------------------------------------------------
@@ -373,7 +422,7 @@ export default class extends Controller {
     private onClick(event: MouseEvent) {
         const target = event.target as HTMLElement
         const action = target.closest<HTMLElement>('[data-ml-action]')?.dataset.mlAction
-        const treeItem = target.closest<HTMLElement>('.ml-tree-item')
+        const folderId = Number(target.closest<HTMLElement>('[data-folder-id]')?.dataset.folderId)
 
         switch (action) {
             case 'sort-asc':
@@ -391,14 +440,17 @@ export default class extends Controller {
             case 'zoom':
                 this.zoom()
                 return
+            case 'cancel':
+                this.close()
+                return
             case 'validate':
                 this.select([...this.selectedFileIds])
                 return
             case 'toggle':
-                this.toggleFolder(Number(treeItem.dataset.folderId))
+                this.toggleFolder(folderId)
                 return
             case 'navigate':
-                this.navigate(Number(treeItem.dataset.folderId))
+                this.navigate(folderId)
                 return
         }
 
@@ -419,6 +471,7 @@ export default class extends Controller {
             this.highlightedFolderId = null
             this.selectedFileIds.clear()
         }
+        this.updateFooter()
     }
 
     private onDblClick(event: MouseEvent) {
