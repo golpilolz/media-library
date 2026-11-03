@@ -3,4 +3,4 @@
     1. Generate and run the migration for the bundle's <comment>file</> / <comment>folder</> tables:
        <comment>php bin/console make:migration && php bin/console doctrine:migrations:migrate</>
     2. Use <comment>Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType</> in your forms.
-    3. Protect the <comment>^/media-library</> endpoints (upload, folder creation) in <comment>config/packages/security.yaml</>.
+    3. Protect the <comment>^/media-library</> endpoints (upload, folder creation, rename, move, delete) in <comment>config/packages/security.yaml</>.

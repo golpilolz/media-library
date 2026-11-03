@@ -2,11 +2,17 @@
 
 namespace Golpilolz\MediaLibrary\Controller;
 
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Golpilolz\MediaLibrary\Dto\AddFolderPayload;
+use Golpilolz\MediaLibrary\Dto\DeleteFilePayload;
+use Golpilolz\MediaLibrary\Dto\MoveFilePayload;
+use Golpilolz\MediaLibrary\Dto\RenameFilePayload;
+use Golpilolz\MediaLibrary\Dto\RenameFolderPayload;
 use Golpilolz\MediaLibrary\Dto\UploadPayload;
 use Golpilolz\MediaLibrary\Entity\File;
 use Golpilolz\MediaLibrary\Entity\Folder;
+use Golpilolz\MediaLibrary\Repository\FileRepository;
 use Golpilolz\MediaLibrary\Repository\FolderRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -80,6 +86,115 @@ class MediaLibraryController extends AbstractController
         $entityManager->flush();
 
         return new JsonResponse(['result' => 'success', 'id' => $folder->getId()], Response::HTTP_CREATED);
+    }
+
+    /**
+     * Renames a folder from the popup. JSON body `{"folder": <folder id>, "name": "…"}`,
+     * see RenameFolderPayload. An invalid body gets a 422 (400 if it isn't JSON).
+     */
+    #[Route('/folders/rename', name: 'rename_folder', methods: ['POST'])]
+    public function renameFolderAction(
+        #[MapRequestPayload(acceptFormat: 'json')] RenameFolderPayload $payload,
+        FolderRepository $folderRepository,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $folder = $folderRepository->find($payload->folder);
+        if (!$folder instanceof Folder) {
+            return $this->uploadError('Unknown folder.');
+        }
+
+        $folder->setName($payload->name);
+        $entityManager->flush();
+
+        return new JsonResponse(['result' => 'success']);
+    }
+
+    /**
+     * Renames a file from the popup (its display name only, the stored file keeps its name).
+     * JSON body `{"file": <file id>, "name": "…"}`, see RenameFilePayload. An invalid body gets a 422
+     * (400 if it isn't JSON).
+     */
+    #[Route('/files/rename', name: 'rename_file', methods: ['POST'])]
+    public function renameFileAction(
+        #[MapRequestPayload(acceptFormat: 'json')] RenameFilePayload $payload,
+        FileRepository $fileRepository,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $file = $fileRepository->find($payload->file);
+        if (!$file instanceof File) {
+            return $this->uploadError('Unknown file.');
+        }
+
+        $file->setName($payload->name);
+        $entityManager->flush();
+
+        return new JsonResponse(['result' => 'success']);
+    }
+
+    /**
+     * Moves a file to another folder from the popup. JSON body `{"file": <file id>, "folder": <folder id>}`,
+     * see MoveFilePayload. An invalid body gets a 422 (400 if it isn't JSON).
+     */
+    #[Route('/files/move', name: 'move_file', methods: ['POST'])]
+    public function moveFileAction(
+        #[MapRequestPayload(acceptFormat: 'json')] MoveFilePayload $payload,
+        FileRepository $fileRepository,
+        FolderRepository $folderRepository,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $file = $fileRepository->find($payload->file);
+        if (!$file instanceof File) {
+            return $this->uploadError('Unknown file.');
+        }
+
+        $folder = $folderRepository->find($payload->folder);
+        if (!$folder instanceof Folder) {
+            return $this->uploadError('Unknown folder.');
+        }
+
+        $file->setFolder($folder);
+        $entityManager->flush();
+
+        return new JsonResponse(['result' => 'success']);
+    }
+
+    /**
+     * Deletes a file from the popup: the File entity, and the stored file when it lives in `upload_dir`.
+     * JSON body `{"file": <file id>}`, see DeleteFilePayload. A file still referenced by another
+     * entity gets a 409. An invalid body gets a 422 (400 if it isn't JSON).
+     */
+    #[Route('/files/delete', name: 'delete_file', methods: ['POST'])]
+    public function deleteFileAction(
+        #[MapRequestPayload(acceptFormat: 'json')] DeleteFilePayload $payload,
+        FileRepository $fileRepository,
+        EntityManagerInterface $entityManager,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_dir')] string $uploadDir,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_path')] string $uploadPath,
+    ): JsonResponse {
+        $file = $fileRepository->find($payload->file);
+        if (!$file instanceof File) {
+            return $this->uploadError('Unknown file.');
+        }
+
+        $url = $file->getUrl();
+        $entityManager->remove($file);
+        try {
+            $entityManager->flush();
+        } catch (ForeignKeyConstraintViolationException) {
+            return $this->uploadError('File is in use.', Response::HTTP_CONFLICT);
+        }
+
+        // Only remove files the upload endpoint stored: a URL outside upload_path is left alone.
+        $prefix = trim($uploadPath, '/') . '/';
+        if (str_starts_with($url, $prefix)) {
+            $filename = substr($url, strlen($prefix));
+            $path = $uploadDir . '/' . $filename;
+            if ($filename === basename($filename) && is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        return new JsonResponse(['result' => 'success']);
     }
 
     /**

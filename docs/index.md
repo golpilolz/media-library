@@ -56,6 +56,10 @@ $builder->add('file', GolpilolzMediaLibrarySingleType::class, [
     'multiple' => false,
     'upload_url' => null,         // drag & drop upload URL; defaults to the bundle's endpoint, null disables upload
     'folder_url' => null,         // folder creation URL; defaults to the bundle's endpoint, null = only event listeners
+    'rename_file_url' => null,    // file rename URL; defaults to the bundle's endpoint, null = only event listeners
+    'rename_folder_url' => null,  // folder rename URL; same
+    'move_file_url' => null,      // file move URL; same
+    'delete_file_url' => null,    // file deletion URL; same
     'theme' => 'easyadmin',       // defaults to the `theme` config key
 ]);
 ```
@@ -118,17 +122,35 @@ responds `{"result": "success", "id": 7}`), set by the `folder_url` form option.
 listener that calls `respondWith()` replaces it; with `folder_url` set to `null` and no listener,
 the folder only lives in the popup.
 
+The other context-menu actions work the same way. Each endpoint takes a JSON body, responds
+`{"result": "success"}`, and is replaced by a listener of the matching event:
+
+| Action | Endpoint (route `golpilolz_media-library_…`) | JSON body | Form option | Event |
+|---|---|---|---|---|
+| Rename a file | `POST /media-library/files/rename` (`rename_file`) | `{"file": <id>, "name": "…"}` | `rename_file_url` | `rename-file` |
+| Rename a folder | `POST /media-library/folders/rename` (`rename_folder`) | `{"folder": <id>, "name": "…"}` | `rename_folder_url` | `rename-folder` |
+| Move a file | `POST /media-library/files/move` (`move_file`) | `{"file": <id>, "folder": <target id>}` | `move_file_url` | `move-file` |
+| Delete a file | `POST /media-library/files/delete` (`delete_file`) | `{"file": <id>}` | `delete_file_url` | `delete-file` |
+
+Renaming a file changes its display name only: the stored file keeps its name and URL.
+Deleting a file removes the `File` entity and, when its URL is under `upload_path`, the stored
+file in `upload_dir`. A file still referenced by another entity (a foreign key, e.g. a product's
+image) is refused with a 409.
+
 ### Endpoint errors
 
 The bundle's endpoints map their input with `#[MapRequestPayload]` / `#[MapUploadedFile]`
-(DTOs `Dto\AddFolderPayload` and `Dto\UploadPayload`), so a malformed request is rejected by
+(DTOs in `Dto\`: `AddFolderPayload`, `RenameFilePayload`, `RenameFolderPayload`, `MoveFilePayload`, `DeleteFilePayload`, `UploadPayload`), so a malformed request is rejected by
 Symfony before the controller runs:
 
 | Endpoint | Request | Status |
 |---|---|---|
-| both | body that can't be parsed, or upload without a `folder` field | 400 |
-| `POST /media-library/folders` | `Content-Type` other than JSON | 415 |
+| all | body that can't be parsed, or upload without a `folder` field | 400 |
+| all but `upload` | `Content-Type` other than JSON | 415 |
 | `POST /media-library/folders` | blank `name` (after trimming), `name` over 255 characters, non-integer `parent` | 422 |
+| `POST /media-library/files/rename`, `/folders/rename` | `file`/`folder` missing or not a positive integer, blank `name` (after trimming), `name` over 255 characters | 422 |
+| `POST /media-library/files/move` | missing `file` or `folder`, or not a positive integer | 422 |
+| `POST /media-library/files/delete` | missing `file`, or not a positive integer | 422 |
 | `POST /media-library/upload` | missing or failed `file` (also for a non-multipart body), `folder` not a positive integer | 422 |
 
 Those errors use Symfony's error format. With `Accept: application/json` it's a problem
@@ -140,16 +162,17 @@ details object, listing the failed fields under `violations` in a 422:
 ```
 
 The checks the controller does itself respond with `{"result": "error", "message": "…"}`:
-an unknown parent folder or upload folder (400), an extension outside `allowed_extensions`
-(415), and a file that can't be moved to `upload_dir` (500).
+an unknown file or folder (400), a deleted file still in use (409), an extension outside
+`allowed_extensions` (415), and a file that can't be moved to `upload_dir` (500).
 
 The popup only tells success from failure: on any error it shows its own message
-("Erreur lors de la création du dossier", "Erreur lors de l'envoi du fichier") and logs the details to the console.
+("Erreur lors de la création du dossier", "Erreur lors de l'envoi du fichier", "Erreur lors du
+renommage du fichier"…) and logs the details to the console.
 
-The bundle has no endpoints for rename / move / delete yet: those changes are only
-applied in the popup unless a listener persists them. A listener can make the popup wait by
-passing a promise to `event.detail.respondWith()`; if it rejects, the error is shown in the
-dialog and nothing changes. For `add-folder`, resolve with `{id}` (otherwise the folder gets a
+A listener persists a change itself by passing a promise to `event.detail.respondWith()`:
+the bundle's endpoint is then not called, and the popup waits for the promise. If it rejects,
+its error message is shown in the dialog and nothing changes. With the action's URL option set
+to `null` and no listener, the change only lives in the popup. For `add-folder`, resolve with `{id}` (otherwise the folder gets a
 temporary negative id).
 
 ```js
