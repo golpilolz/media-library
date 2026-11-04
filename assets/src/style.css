@@ -997,7 +997,7 @@
 }
 
 .golpilolz-media-library .ml-context-item:hover,
-.golpilolz-media-library .ml-context-item:focus {
+.golpilolz-media-library .ml-context-item:focus-visible {
     background: var(--ml-accent);
     color: var(--ml-on-accent);
     outline: none;
