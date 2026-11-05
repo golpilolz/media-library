@@ -72,7 +72,7 @@ With `multiple`, the widget shows the selected files as tiles: × removes one, "
 the popup with the current selection preselected, "Tout retirer" clears the field. An empty
 multiple field submits nothing (its hidden input is disabled), so the collection is emptied.
 
-Right-click in the file grid for: rename / move / delete a file, rename a folder, create a
+Right-click in the file grid for: rename / crop / move / delete a file, rename a folder, create a
 folder. The popup has no jQuery and no CSS framework dependency (native `<dialog>`).
 
 ### Upload
@@ -100,6 +100,20 @@ must respond with:
 
 Any other `result` is shown as an upload error.
 
+### Crop
+
+"Recadrer" (right-click on a JPEG, PNG or WebP image) opens a crop dialog: free or fixed
+proportions (1:1, 4:3, 3:2, 16:9), drag the corners or edges to resize, inside the box to move
+it (arrow keys too, Shift for bigger steps), or on the image to draw a new box. The original
+file is kept: the browser crops the image with a canvas (same format, JPEG/WebP at quality 0.92)
+and saves the result as a **new file** in the same folder, named "<name> (recadré).<ext>", which
+gets selected.
+
+The cropped file is POSTed to `upload_url` like a dropped file (so `allowed_extensions` applies),
+unless a `crop-file` listener answers: its promise must resolve with the new file
+`{id, url, name?}`. With `upload_url` set to `null` and no listener, cropping fails. The image
+must be same-origin (or served with CORS headers): a canvas can't export a cross-origin image.
+
 ### Events
 
 The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-library:`:
@@ -112,6 +126,7 @@ The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-lib
 | `rename-folder` | `folder`, `name` |
 | `move-file` | `file`, `folder` (target) |
 | `delete-file` | `file` |
+| `crop-file` | `file` (original), `folder`, `crop` (`{x, y, width, height}` in image pixels), `blob` (cropped image), `name` |
 | `add-folder` | `parent` (folder or `null` for root), `name` |
 | `upload-sending` | `file`, `folder`, `xhr`, `formData` |
 | `connect`, `showPopup`, `closePopup`, `clear` | – |

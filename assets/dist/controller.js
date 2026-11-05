@@ -7,6 +7,15 @@ import { Controller } from '@hotwired/stimulus';
 var ROOT = 0;
 var EVENT_PREFIX = 'golpilolz_media-library';
 var IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'];
+// Images the crop dialog can re-encode with a canvas, and the MIME type it writes them in.
+var CROP_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp'
+};
+var CROP_RATIOS = [['Libre', null], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]];
+var CROP_HANDLES = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'];
 var ICONS = {
   pdf: ['pdf'],
   doc: ['doc', 'docx', 'odt', 'rtf'],
@@ -33,6 +42,10 @@ var LANG = {
   rename: 'Renommer',
   move: 'Déplacer',
   delete: 'Supprimer',
+  crop: 'Recadrer',
+  cropRatio: 'Proportions',
+  cropArea: 'Zone de recadrage',
+  croppedName: (name, ext) => name + " (recadr\xE9)." + ext,
   remove: 'Retirer',
   add: 'Ajouter',
   newFolder: 'Nouveau dossier',
@@ -41,6 +54,7 @@ var LANG = {
   titleAddFolder: 'Ajouter un dossier',
   titleMoveFile: 'Déplacer le fichier',
   titleDeleteFile: 'Supprimer le fichier ?',
+  titleCropFile: "Recadrer l'image",
   confirmDeleteFile: 'Êtes-vous sûr de vouloir supprimer le fichier :',
   emptyLabel: 'Veuillez entrer un libellé',
   emptyTarget: 'Veuillez choisir un dossier',
@@ -49,6 +63,8 @@ var LANG = {
   errorRenameFolder: 'Erreur lors du renommage du dossier',
   errorMoveFile: 'Erreur lors du déplacement du fichier',
   errorDeleteFile: 'Erreur lors de la suppression du fichier',
+  errorCropFile: "Erreur lors du recadrage de l'image",
+  errorCropLoad: "Impossible de charger l'image",
   errorAction: 'Une erreur est survenue',
   errorUpload: "Erreur lors de l'envoi du fichier",
   errorUploadRoot: 'Ouvrez un dossier pour y déposer des fichiers',
@@ -56,7 +72,8 @@ var LANG = {
   successRenameFolder: 'Le dossier a bien été renommé',
   successUploadFile: 'Le fichier a bien été envoyé',
   successMoveFile: 'Le fichier a bien été déplacé',
-  successDeleteFile: 'Le fichier a bien été supprimé'
+  successDeleteFile: 'Le fichier a bien été supprimé',
+  successCropFile: "L'image recadrée a bien été enregistrée"
 };
 var escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 var extension = url => {
@@ -65,6 +82,53 @@ var extension = url => {
   return dot === -1 ? '' : path.slice(dot + 1).toLowerCase();
 };
 var isImage = file => IMAGE_EXTENSIONS.includes(extension(file.url));
+var isCroppable = file => extension(file.url) in CROP_TYPES;
+var clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+// Resize `start` (image pixels) by dragging `handle` (n, se, w…) by dx/dy, within a W×H image.
+// With a ratio, the side opposite the handle stays put (or the center, for an edge handle).
+var resizeCrop = (start, handle, dx, dy, ratio, W, H, min) => {
+  var h = handle.includes('w') ? 'w' : handle.includes('e') ? 'e' : null;
+  var v = handle.includes('n') ? 'n' : handle.includes('s') ? 's' : null;
+  // Anchor: the opposite edge, or the center on the axis the handle doesn't drag.
+  var ax = h === 'w' ? start.x + start.width : h === 'e' ? start.x : start.x + start.width / 2;
+  var ay = v === 'n' ? start.y + start.height : v === 's' ? start.y : start.y + start.height / 2;
+  var maxWidth = h === 'w' ? ax : h === 'e' ? W - ax : 2 * Math.min(ax, W - ax);
+  var maxHeight = v === 'n' ? ay : v === 's' ? H - ay : 2 * Math.min(ay, H - ay);
+  var width = h === 'w' ? start.width - dx : h === 'e' ? start.width + dx : start.width;
+  var height = v === 'n' ? start.height - dy : v === 's' ? start.height + dy : start.height;
+  if (ratio) {
+    if (h === null) {
+      width = height * ratio;
+    }
+    width = clamp(width, Math.max(min, min * ratio), Math.min(maxWidth, maxHeight * ratio));
+    height = width / ratio;
+  } else {
+    width = h === null ? start.width : clamp(width, min, maxWidth);
+    height = v === null ? start.height : clamp(height, min, maxHeight);
+  }
+  return {
+    x: h === 'w' ? ax - width : h === 'e' ? ax : ax - width / 2,
+    y: v === 'n' ? ay - height : v === 's' ? ay : ay - height / 2,
+    width,
+    height
+  };
+};
+
+// Largest crop of `ratio` (whole image when null) centered in a W×H image.
+var fitCrop = (ratio, W, H) => {
+  var width = W;
+  var height = H;
+  if (ratio) {
+    W / H > ratio ? width = H * ratio : height = W / ratio;
+  }
+  return {
+    x: (W - width) / 2,
+    y: (H - height) / 2,
+    width,
+    height
+  };
+};
 var iconFor = file => {
   var ext = extension(file.url);
   for (var [icon, extensions] of Object.entries(ICONS)) {
@@ -556,7 +620,10 @@ export default class _class extends Controller {
       items = [{
         label: LANG.rename,
         action: () => this.renameFile(file)
-      }, {
+      }, ...(isCroppable(file) ? [{
+        label: LANG.crop,
+        action: () => this.cropFile(file)
+      }] : []), {
         label: LANG.move,
         action: () => this.moveFile(file)
       }, {
@@ -848,17 +915,273 @@ export default class _class extends Controller {
       }()
     }]);
   }
-  dialog(title, body, buttons) {
+
+  // Crop an image into a new file of the same folder: the original is kept. The canvas does
+  // the cropping, then the result goes to the upload endpoint, unless a crop-file listener answers.
+  cropFile(file) {
+    var _this10 = this;
+    var body = "<div class=\"ml-crop-toolbar\">\n                <div class=\"ml-segmented\" role=\"group\" aria-label=\"" + LANG.cropRatio + "\">" + CROP_RATIOS.map((_ref2, index) => {
+      var [label] = _ref2;
+      return "<button type=\"button\" class=\"ml-segment " + (index === 0 ? 'active' : '') + "\" data-ratio=\"" + index + "\">" + label + "</button>";
+    }).join('') + "</div>\n                <span class=\"ml-crop-size\" aria-live=\"polite\"></span>\n            </div>\n            <div class=\"ml-crop-area\">\n                <div class=\"ml-crop-stage\">\n                    <img src=\"" + escapeHtml(file.url) + "\" alt=\"\" draggable=\"false\">\n                    <div class=\"ml-crop-box\" tabindex=\"0\" aria-label=\"" + LANG.cropArea + "\" hidden>" + CROP_HANDLES.map(handle => "<span class=\"ml-crop-handle ml-crop-handle--" + handle + "\" data-handle=\"" + handle + "\"></span>").join('') + "</div>\n                </div>\n            </div>";
+    var crop = null;
+    var ratio = null;
+    this.dialog(LANG.titleCropFile, body, [{
+      label: LANG.cancel
+    }, {
+      label: LANG.crop,
+      className: 'ml-btn-primary',
+      action: function () {
+        var _action6 = _asyncToGenerator(function* (dialog) {
+          var _folder$files4;
+          if (!crop) {
+            throw new Error(LANG.errorCropLoad);
+          }
+          var folder = _this10.getFileFolder(file.id);
+          var ext = extension(file.url);
+          var name = LANG.croppedName(file.name.replace(/\.[^.]+$/, ''), ext);
+          var rect = {
+            x: Math.round(crop.x),
+            y: Math.round(crop.y),
+            width: Math.round(crop.width),
+            height: Math.round(crop.height)
+          };
+          var cropped = yield _this10.saveCrop(file, folder, dialog.querySelector('.ml-crop-stage img'), rect, name, CROP_TYPES[ext]);
+          folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), cropped];
+          if (!_this10.multipleValue) {
+            _this10.selectedFileIds.clear();
+          }
+          _this10.selectedFileIds.add(cropped.id);
+          _this10.renderContent();
+          _this10.alert(LANG.successCropFile);
+        });
+        function action(_x5) {
+          return _action6.apply(this, arguments);
+        }
+        return action;
+      }()
+    }], 'ml-dialog--crop');
+    var dialog = this.find('.ml-dialog');
+    var stage = dialog.querySelector('.ml-crop-stage');
+    var img = stage.querySelector('img');
+    var box = stage.querySelector('.ml-crop-box');
+    var size = dialog.querySelector('.ml-crop-size');
+    var W = () => img.naturalWidth;
+    var H = () => img.naturalHeight;
+    // Image pixels per CSS pixel on screen.
+    var pixelRatio = () => W() / img.getBoundingClientRect().width;
+    var draw = () => {
+      if (!crop) {
+        return;
+      }
+      var scale = img.clientWidth / W();
+      box.style.left = crop.x * scale + "px";
+      box.style.top = crop.y * scale + "px";
+      box.style.width = crop.width * scale + "px";
+      box.style.height = crop.height * scale + "px";
+      size.textContent = Math.round(crop.width) + " \xD7 " + Math.round(crop.height) + " px";
+    };
+    var init = () => {
+      crop = fitCrop(ratio, W(), H());
+      box.hidden = false;
+      draw();
+    };
+    if (img.complete && img.naturalWidth > 0) {
+      init();
+    } else {
+      img.addEventListener('load', init, {
+        once: true
+      });
+      img.addEventListener('error', () => {
+        var error = dialog.querySelector('.ml-dialog-error');
+        error.textContent = LANG.errorCropLoad;
+        error.hidden = false;
+      }, {
+        once: true
+      });
+    }
+    var observer = new ResizeObserver(draw);
+    observer.observe(img);
+    dialog.addEventListener('close', () => observer.disconnect(), {
+      once: true
+    });
+    dialog.querySelectorAll('[data-ratio]').forEach(button => button.addEventListener('click', () => {
+      dialog.querySelectorAll('[data-ratio]').forEach(other => other.classList.toggle('active', other === button));
+      ratio = CROP_RATIOS[Number(button.dataset.ratio)][1];
+      if (crop) {
+        crop = fitCrop(ratio, W(), H());
+        draw();
+      }
+    }));
+
+    // Drag a handle to resize, inside the box to move it, elsewhere on the image to draw a new one.
+    stage.addEventListener('pointerdown', event => {
+      var _target$dataset$handl;
+      if (!crop || event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      var target = event.target;
+      var handle = (_target$dataset$handl = target.dataset.handle) != null ? _target$dataset$handl : target.closest('.ml-crop-box') ? 'move' : 'new';
+      var bounds = img.getBoundingClientRect();
+      var k = pixelRatio();
+      var point = e => ({
+        x: clamp((e.clientX - bounds.left) * k, 0, W()),
+        y: clamp((e.clientY - bounds.top) * k, 0, H())
+      });
+      var origin = point(event);
+      var start = _extends({}, crop);
+      var min = Math.min(16 * k, W(), H());
+      box.focus({
+        preventScroll: true
+      });
+      var move = e => {
+        var current = point(e);
+        var dx = current.x - origin.x;
+        var dy = current.y - origin.y;
+        if (handle === 'move') {
+          crop = _extends({}, start, {
+            x: clamp(start.x + dx, 0, W() - start.width),
+            y: clamp(start.y + dy, 0, H() - start.height)
+          });
+        } else if (handle === 'new') {
+          var width = Math.abs(dx);
+          var height = Math.abs(dy);
+          if (ratio) {
+            width / height > ratio ? width = height * ratio : height = width / ratio;
+          }
+          crop = {
+            x: dx < 0 ? origin.x - width : origin.x,
+            y: dy < 0 ? origin.y - height : origin.y,
+            width,
+            height
+          };
+        } else {
+          crop = resizeCrop(start, handle, dx, dy, ratio, W(), H(), min);
+        }
+        draw();
+      };
+      var end = () => {
+        // A click (or a tiny drag) on the image keeps the previous box.
+        if (handle === 'new' && (crop.width < min || crop.height < min)) {
+          crop = start;
+          draw();
+        }
+        stage.removeEventListener('pointermove', move);
+        stage.removeEventListener('pointerup', end);
+        stage.removeEventListener('pointercancel', end);
+      };
+      stage.setPointerCapture(event.pointerId);
+      stage.addEventListener('pointermove', move);
+      stage.addEventListener('pointerup', end);
+      stage.addEventListener('pointercancel', end);
+    });
+
+    // Arrow keys move the box (Shift: 10 times faster).
+    box.addEventListener('keydown', event => {
+      var step = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1]
+      }[event.key];
+      if (!crop || !step) {
+        return;
+      }
+      event.preventDefault();
+      var distance = (event.shiftKey ? 10 : 1) * pixelRatio();
+      crop = _extends({}, crop, {
+        x: clamp(crop.x + step[0] * distance, 0, W() - crop.width),
+        y: clamp(crop.y + step[1] * distance, 0, H() - crop.height)
+      });
+      draw();
+    });
+  }
+
+  // Crop `img` to `rect` (image pixels) and store it as a new file of `folder`: a crop-file
+  // listener can answer with a promise of {id, name?, url}, otherwise it's POSTed to upload_url.
+  saveCrop(file, folder, img, rect, name, type) {
+    var _this11 = this;
+    return _asyncToGenerator(function* () {
+      var blob;
+      try {
+        blob = yield new Promise((resolve, reject) => {
+          var canvas = document.createElement('canvas');
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+          canvas.getContext('2d').drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+          // Throws a SecurityError for a cross-origin image served without CORS headers.
+          canvas.toBlob(result => result ? resolve(result) : reject(new Error('Empty canvas')), type, .92);
+        });
+      } catch (error) {
+        console.error(error);
+        throw new Error(LANG.errorCropFile);
+      }
+      var answered = false;
+      var response = yield _this11.emit('crop-file', {
+        file,
+        folder,
+        crop: rect,
+        blob,
+        name
+      }, () => answered = true);
+      if (answered) {
+        var _response$name;
+        if (typeof (response == null ? void 0 : response.id) !== 'number' || typeof response.url !== 'string') {
+          console.error('crop-file: respondWith() must resolve with {id, url}', response);
+          throw new Error(LANG.errorCropFile);
+        }
+        return {
+          id: response.id,
+          name: (_response$name = response.name) != null ? _response$name : name,
+          url: response.url
+        };
+      }
+      try {
+        if (_this11.uploadUrlValue === '') {
+          throw new Error('No upload_url and no crop-file listener');
+        }
+        var formData = new FormData();
+        formData.append('file', blob, name);
+        formData.append('folder', String(folder.id));
+        var result = yield fetch(_this11.uploadUrlValue, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json'
+          },
+          body: formData
+        });
+        var json = yield result.json().catch(() => null);
+        if (!result.ok || (json == null ? void 0 : json.result) !== 'success') {
+          var _json$message3;
+          throw new Error((_json$message3 = json == null ? void 0 : json.message) != null ? _json$message3 : "HTTP " + result.status);
+        }
+        return {
+          id: json.file.id,
+          name: json.file.name,
+          url: json.file.url
+        };
+      } catch (error) {
+        console.error(error);
+        throw new Error(LANG.errorCropFile);
+      }
+    })();
+  }
+  dialog(title, body, buttons, className) {
+    if (className === void 0) {
+      className = '';
+    }
     // No <form> here: the widget usually sits inside the page's Symfony form, where a nested
     // <form> is dropped by the HTML parser. All buttons are type="button" for the same reason.
     var dialog = this.find('.ml-dialog');
+    dialog.className = "ml-dialog " + className;
     dialog.innerHTML = "<div class=\"ml-dialog-form\">\n            <header class=\"ml-dialog-title\">" + escapeHtml(title) + "</header>\n            <div class=\"ml-dialog-body\">" + body + "</div>\n            <p class=\"ml-dialog-error\" hidden></p>\n            <footer class=\"ml-dialog-buttons\">" + buttons.map((button, index) => {
       var _button$className;
       return "<button type=\"button\" class=\"ml-btn " + ((_button$className = button.className) != null ? _button$className : '') + "\" data-index=\"" + index + "\">" + escapeHtml(button.label) + "</button>";
     }).join('') + "\n            </footer>\n        </div>";
     var error = dialog.querySelector('.ml-dialog-error');
     var run = /*#__PURE__*/function () {
-      var _ref2 = _asyncToGenerator(function* (button, element) {
+      var _ref3 = _asyncToGenerator(function* (button, element) {
         error.hidden = true;
         element.disabled = true;
         try {
@@ -873,8 +1196,8 @@ export default class _class extends Controller {
           element.disabled = false;
         }
       });
-      return function run(_x5, _x6) {
-        return _ref2.apply(this, arguments);
+      return function run(_x6, _x7) {
+        return _ref3.apply(this, arguments);
       };
     }();
     var elements = [...dialog.querySelectorAll('.ml-dialog-buttons button')];
@@ -897,21 +1220,21 @@ export default class _class extends Controller {
   // ---- Upload (Dropzone) ----------------------------------------------
 
   initDropzone(session) {
-    var _this10 = this;
+    var _this12 = this;
     return _asyncToGenerator(function* () {
-      if (_this10.uploadUrlValue === '' || _this10.dropzone) {
+      if (_this12.uploadUrlValue === '' || _this12.dropzone) {
         return;
       }
       var {
         default: Dropzone
       } = yield import('dropzone');
-      if (session !== _this10.session || _this10.dropzone) {
+      if (session !== _this12.session || _this12.dropzone) {
         return;
       }
-      var targetFolderId = _this10.activeFolderId;
-      var dropzone = new Dropzone(_this10.find('.ml-content'), {
-        url: _this10.uploadUrlValue,
-        previewsContainer: _this10.find('.ml-infos'),
+      var targetFolderId = _this12.activeFolderId;
+      var dropzone = new Dropzone(_this12.find('.ml-content'), {
+        url: _this12.uploadUrlValue,
+        previewsContainer: _this12.find('.ml-infos'),
         clickable: false,
         // Files belong to a folder: the root has none to store them in.
         accept: (file, done) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
@@ -920,14 +1243,14 @@ export default class _class extends Controller {
       });
       dropzone.on('drop', event => {
         var folder = event.target.closest('.ml-folder');
-        targetFolderId = folder ? Number(folder.dataset.folderId) : _this10.activeFolderId;
+        targetFolderId = folder ? Number(folder.dataset.folderId) : _this12.activeFolderId;
       });
       dropzone.on('sending', (file, xhr, formData) => {
-        var _this10$getFolder;
+        var _this12$getFolder;
         formData.append('folder', String(targetFolderId));
-        _this10.dispatchEvent('upload-sending', {
+        _this12.dispatchEvent('upload-sending', {
           file,
-          folder: (_this10$getFolder = _this10.getFolder(targetFolderId)) != null ? _this10$getFolder : null,
+          folder: (_this12$getFolder = _this12.getFolder(targetFolderId)) != null ? _this12$getFolder : null,
           xhr,
           formData
         });
@@ -935,30 +1258,30 @@ export default class _class extends Controller {
       dropzone.on('success', (file, json) => {
         if ((json == null ? void 0 : json.result) !== 'success') {
           console.error(json);
-          _this10.alert(LANG.errorUpload, 'danger');
+          _this12.alert(LANG.errorUpload, 'danger');
           return;
         }
-        var folder = _this10.getFolder(json.file.parent);
+        var folder = _this12.getFolder(json.file.parent);
         if (folder) {
-          var _folder$files4;
-          folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), {
+          var _folder$files5;
+          folder.files = [...((_folder$files5 = folder.files) != null ? _folder$files5 : []), {
             id: json.file.id,
             name: json.file.name,
             url: json.file.url
           }];
-          _this10.renderContent();
+          _this12.renderContent();
         }
-        _this10.alert(LANG.successUploadFile);
+        _this12.alert(LANG.successUploadFile);
       });
       dropzone.on('error', (file, message) => {
         console.error(message);
-        _this10.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
+        _this12.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
       });
       dropzone.on('complete', file => {
         var _file$previewElement;
         return (_file$previewElement = file.previewElement) == null ? void 0 : _file$previewElement.remove();
       });
-      _this10.dropzone = dropzone;
+      _this12.dropzone = dropzone;
     })();
   }
   destroyDropzone() {
@@ -987,10 +1310,10 @@ export default class _class extends Controller {
   // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
   // onRespond is called when a listener answers, to tell it apart from a promise resolving to undefined.
   emit(name, detail, onRespond) {
-    var _this11 = this;
+    var _this13 = this;
     return _asyncToGenerator(function* () {
       var pending;
-      _this11.dispatchEvent(name, _extends({}, detail, {
+      _this13.dispatchEvent(name, _extends({}, detail, {
         respondWith: promise => {
           pending = promise;
           onRespond == null || onRespond();
