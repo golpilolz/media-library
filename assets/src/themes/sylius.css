@@ -1,0 +1,42 @@
+/* ---- Theme "sylius": Sylius 2 admin (Tabler / Bootstrap 5) ----
+   Colors come from Tabler's CSS variables, so they follow Sylius's primary color and
+   Tabler's light/dark scheme ([data-bs-theme=dark]) rather than the OS one.
+   Fallbacks are Sylius's own values (primary #22B99A, Inter) and apply outside Tabler. */
+
+.golpilolz-media-library-widget.ml-theme-sylius,
+.ml-theme-sylius .golpilolz-media-library {
+    --ml-accent: var(--tblr-primary, #22b99a);
+    --ml-accent-hover: color-mix(in srgb, var(--ml-accent) 85%, #000);
+    --ml-on-accent: #fff;
+    --ml-danger: var(--tblr-danger, #d63939);
+    --ml-text: var(--tblr-body-color, #212529);
+    --ml-text-secondary: var(--tblr-secondary-color, #6c757d);
+    --ml-surface: var(--tblr-bg-surface, #fff);
+    --ml-sidebar: var(--tblr-bg-surface-secondary, #f8f9fa);
+    --ml-fill: color-mix(in srgb, var(--ml-text) 8%, transparent);
+    --ml-fill-strong: color-mix(in srgb, var(--ml-text) 18%, transparent);
+    --ml-hover: color-mix(in srgb, var(--ml-text) 5%, transparent);
+    --ml-selected: color-mix(in srgb, var(--ml-accent) 14%, transparent);
+    --ml-separator: var(--tblr-border-color, #e9ecef);
+    --ml-folder: var(--ml-accent);
+    /* Sylius's modal backdrop is black at .75: a bit lighter here, the popup also blurs it. */
+    --ml-backdrop: rgba(0, 0, 0, .5);
+    --ml-menu: color-mix(in srgb, var(--tblr-bg-surface, #fff) 92%, transparent);
+    --ml-toast: rgba(33, 37, 41, .92);
+    --ml-shadow: 0 16px 48px rgba(0, 0, 0, .175);
+    --ml-shadow-small: 0 1px 2px rgba(0, 0, 0, .06);
+    --ml-radius: var(--tblr-border-radius-lg, .5rem);
+    --ml-radius-control: var(--tblr-border-radius, .25rem);
+    --ml-radius-field: var(--tblr-border-radius, .25rem);
+    --ml-font: var(--tblr-font-sans-serif, "InterVariable", Arial, sans-serif);
+    /* Above Bootstrap's modals (1055), below its popovers and tooltips (1070+). */
+    --ml-z: 1060;
+}
+
+[data-bs-theme=dark] .golpilolz-media-library-widget.ml-theme-sylius,
+[data-bs-theme=dark] .ml-theme-sylius .golpilolz-media-library {
+    --ml-backdrop: rgba(0, 0, 0, .6);
+    --ml-toast: rgba(64, 64, 64, .95);
+    --ml-shadow: 0 24px 64px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
+    --ml-shadow-small: none;
+}

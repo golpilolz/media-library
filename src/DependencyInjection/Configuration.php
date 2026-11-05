@@ -18,7 +18,7 @@ class Configuration implements ConfigurationInterface
                 ->booleanNode('include_jQuery')->end()
                 ->booleanNode('include_bootstrap')->end()
                 ->scalarNode('theme')
-                    ->info('Default widget theme: "default", "sonata", "easyadmin" or a custom theme name. Overridable per field with the "theme" form option.')
+                    ->info('Default widget theme: "default", "sonata", "easyadmin", "sylius" or a custom theme name. Overridable per field with the "theme" form option.')
                     ->defaultValue('default')
                     ->validate()
                         ->ifTrue(static fn ($theme) => !\is_string($theme) || !preg_match('/^[a-z0-9_]+$/', $theme))

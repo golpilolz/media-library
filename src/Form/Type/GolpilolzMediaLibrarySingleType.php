@@ -86,7 +86,7 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             // shows what the popup already knows (name, folder, URL).
             'file_info_url' => $this->urlGenerator->generate('golpilolz_media-library_file_info'),
             // Theme of the widget and popup: adds the "ml-theme-<theme>" class. Built-in themes:
-            // "default", "sonata" (Sonata Admin) and "easyadmin" (EasyAdmin).
+            // "default", "sonata" (Sonata Admin), "easyadmin" (EasyAdmin) and "sylius" (Sylius 2 admin).
             'theme' => $this->defaultTheme,
         ]);
         $resolver->setAllowedTypes('prefix', ['string']);
