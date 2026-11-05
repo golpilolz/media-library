@@ -22,15 +22,15 @@
     --ml-toast: rgba(34, 45, 50, .94);
     --ml-shadow: 0 10px 40px rgba(0, 0, 0, .25);
     --ml-shadow-small: 0 1px 1px rgba(0, 0, 0, .1);
-    --ml-radius: 6px;
-    --ml-radius-control: 3px;
-    --ml-radius-field: 3px;
+    --ml-radius: .375rem;
+    --ml-radius-control: .1875rem;
+    --ml-radius-field: .1875rem;
     --ml-font: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
     /* Above the AdminLTE header (1030) and Bootstrap 3 modals (1050). */
     --ml-z: 1060;
 }
 
-/* Bootstrap 3 sets a 14px/1.43 body: keep the widget's own metrics. */
+/* Bootstrap 3 sets a .875rem/1.43 body: keep the widget's own metrics. */
 .golpilolz-media-library-widget.ml-theme-sonata {
     line-height: normal;
 }

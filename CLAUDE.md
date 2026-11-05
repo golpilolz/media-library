@@ -23,7 +23,7 @@ npm run build       # babel src/*.ts -> dist/*.js
 npm run build:css   # cat src/*.css src/themes/*.css | csso -> dist/style.min.css
 ```
 
-Babel targets ES-module browsers (`targets.esmodules`), so async/await stays native: no regenerator runtime. `tsc` isn't part of the build, but you can type-check with `node_modules/.bin/tsc --noEmit --target es2020 --module es2020 --moduleResolution node --lib es2020,dom,dom.iterable --skipLibCheck src/controller.ts`. The only expected error is the missing `dropzone` types. The Node 16 nvm default runs the build, but `npx` is broken with the global npm. The file-type icons live directly in `dist/icons/` (like `dist/fonts/`) and are referenced from CSS, so AssetMapper rewrites them with digests.
+Babel targets ES-module browsers (`targets.esmodules`), so async/await stays native: no regenerator runtime. `tsc` isn't part of the build, but you can type-check with `node_modules/.bin/tsc --noEmit --target es2020 --module es2020 --moduleResolution node --lib es2020,dom,dom.iterable --skipLibCheck src/controller.ts`. The only expected error is the missing `dropzone` types. The Node 16 nvm default runs the build, but `npx` is broken with the global npm. All icons are SVGs in `dist/icons/` (no icon font), referenced from CSS so AssetMapper rewrites them with digests: file-type icons are colored backgrounds, UI icons (`.icon-<name>` spans) are single-color masks painted with `currentColor`, 1.2rem square except the large folder icons (folder thumbnail, empty state) which stay 1em and follow `font-size` (`src/icon.css`).
 
 The popup has no jQuery and no CSS framework. Markup comes from TypeScript template literals (always pass names through `escapeHtml`), dialogs use native `<dialog>`, and the context menu is hand-made. The UI strings are French (`LANG` in the controller). Dropzone 6 is the only runtime dependency. It's imported dynamically, only when the `upload_url` form option is non-null (it defaults to the bundle's upload route), and must be in the app's importmap.
 
@@ -31,6 +31,7 @@ Front-end pitfalls already hit:
 - The widget renders inside the page's Symfony `<form>`. The HTML parser drops a nested `<form>` (so no `<form method="dialog">`), and any `type="submit"` button or Enter in an input submits the page.
 - `open()` is async (it fetches folders). A `session` counter discards a stale `open()` after a newer open or a close, which would otherwise attach a second Dropzone.
 - Never put `transform`, `filter` or `backdrop-filter` (static or animated) on the panel or its ancestors. Any of them makes that element the containing block of the `position: fixed` context menu, which then gets offset. The panel animates `top`/`bottom`, and the backdrop blur sits on `.ml-popup::before`.
+- Sizes are in `rem` (px ÷ 16), so the popup scales with the host page's root font-size. Hairlines (≤ 2px borders/outlines), shadows, blurs and media-query breakpoints stay in `px`.
 - Everything is scoped under `.golpilolz-media-library` (the panel) or `.golpilolz-media-library-widget`, with `ml-` classes, because the widget renders inside arbitrary host pages. The design tokens (`--ml-*`, light and dark via `prefers-color-scheme`) are defined on those two roots, not on `:root`.
 
 ## Architecture

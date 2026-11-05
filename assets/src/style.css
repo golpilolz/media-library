@@ -21,9 +21,9 @@
     --ml-toast: rgba(29, 29, 31, .92);
     --ml-shadow: 0 24px 64px rgba(0, 0, 0, .18), 0 2px 8px rgba(0, 0, 0, .08);
     --ml-shadow-small: 0 1px 3px rgba(0, 0, 0, .12);
-    --ml-radius: 16px;
-    --ml-radius-control: 8px;
-    --ml-radius-field: 12px;
+    --ml-radius: 1rem;
+    --ml-radius-control: .5rem;
+    --ml-radius-field: .75rem;
     --ml-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --ml-ease: cubic-bezier(.25, .1, .25, 1);
     --ml-z: 1000;
@@ -66,10 +66,10 @@
 .golpilolz-media-library-widget .ml-field-empty {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: .875rem;
     width: 100%;
-    max-width: 480px;
-    padding: 14px 16px;
+    max-width: 30rem;
+    padding: .875rem 1rem;
     border: 1.5px dashed var(--ml-fill-strong);
     border-radius: var(--ml-radius-field);
     background: var(--ml-surface);
@@ -95,9 +95,9 @@
     display: grid;
     flex: none;
     place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: .625rem;
     background: var(--ml-selected);
     color: var(--ml-accent);
 }
@@ -110,13 +110,13 @@
 }
 
 .golpilolz-media-library-widget .ml-field-empty-title {
-    font-size: 15px;
+    font-size: .9375rem;
     font-weight: 600;
     color: var(--ml-accent);
 }
 
 .golpilolz-media-library-widget .ml-field-empty-hint {
-    font-size: 13px;
+    font-size: .8125rem;
     color: var(--ml-text-secondary);
 }
 
@@ -125,9 +125,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    max-width: 480px;
-    padding: 10px;
+    gap: .75rem;
+    max-width: 30rem;
+    padding: .625rem;
     border: 1px solid var(--ml-separator);
     border-radius: var(--ml-radius-field);
     background: var(--ml-surface);
@@ -136,26 +136,26 @@
 
 .golpilolz-media-library-widget .ml-field-preview {
     display: flex;
-    flex: 1 1 200px;
+    flex: 1 1 12.5rem;
     flex-direction: column;
-    gap: 8px;
+    gap: .5rem;
     min-width: 0;
 }
 
 .golpilolz-media-library-widget .ml-preview-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: .75rem;
     min-width: 0;
 }
 
 .golpilolz-media-library-widget .ml-preview-thumb {
     flex: none;
-    width: 56px;
-    height: 56px;
+    width: 3.5rem;
+    height: 3.5rem;
     overflow: hidden;
-    border-radius: 8px;
-    background: center / 28px no-repeat;
+    border-radius: .5rem;
+    background: center / 1.75rem no-repeat;
 }
 
 .golpilolz-media-library-widget .ml-preview-thumb img {
@@ -167,7 +167,7 @@
 
 .golpilolz-media-library-widget .ml-preview-name {
     overflow: hidden;
-    font-size: 14px;
+    font-size: .875rem;
     font-weight: 500;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -176,19 +176,19 @@
 .golpilolz-media-library-widget .ml-field-actions {
     display: flex;
     flex: none;
-    gap: 8px;
+    gap: .5rem;
     margin-left: auto;
 }
 
 .golpilolz-media-library-widget .ml-field-btn {
-    height: 32px;
-    padding: 0 14px;
+    height: 2rem;
+    padding: 0 .875rem;
     border: none;
     border-radius: var(--ml-radius-control);
     background: var(--ml-fill);
     color: var(--ml-text);
     font: inherit;
-    font-size: 13px;
+    font-size: .8125rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
@@ -209,7 +209,7 @@
 /* Single: previews stack beside the actions */
 .golpilolz-media-library-widget .ml-field-grid {
     display: flex;
-    flex: 1 1 200px;
+    flex: 1 1 12.5rem;
     min-width: 0;
 }
 
@@ -217,15 +217,15 @@
 .golpilolz-media-library-widget .ml-field-filled--multiple {
     flex-direction: column;
     align-items: stretch;
-    max-width: 560px;
-    padding: 12px;
+    max-width: 35rem;
+    padding: .75rem;
 }
 
 .golpilolz-media-library-widget .ml-field-filled--multiple .ml-field-grid {
     display: grid;
     flex: none;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+    gap: .625rem;
 }
 
 .golpilolz-media-library-widget .ml-field-filled--multiple .ml-field-preview {
@@ -235,31 +235,31 @@
 .golpilolz-media-library-widget .ml-field-filled--multiple .ml-preview-item {
     position: relative;
     flex-direction: column;
-    gap: 6px;
+    gap: .375rem;
 }
 
 .golpilolz-media-library-widget .ml-field-filled--multiple .ml-preview-thumb {
     width: 100%;
     height: auto;
     aspect-ratio: 1;
-    border-radius: 10px;
-    background-size: 36px;
+    border-radius: .625rem;
+    background-size: 2.25rem;
 }
 
 .golpilolz-media-library-widget .ml-field-filled--multiple .ml-preview-name {
     max-width: 100%;
-    font-size: 12px;
+    font-size: .75rem;
     color: var(--ml-text-secondary);
 }
 
 .golpilolz-media-library-widget .ml-preview-remove {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: .375rem;
+    right: .375rem;
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 1.5rem;
+    height: 1.5rem;
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -295,14 +295,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: .25rem;
     aspect-ratio: 1;
     border: 1.5px dashed var(--ml-fill-strong);
-    border-radius: 10px;
+    border-radius: .625rem;
     background: none;
     color: var(--ml-accent);
     font: inherit;
-    font-size: 13px;
+    font-size: .8125rem;
     font-weight: 500;
     cursor: pointer;
     transition: border-color .15s var(--ml-ease), background-color .15s var(--ml-ease);
@@ -322,12 +322,12 @@
     align-items: center;
     justify-content: space-between;
     margin-left: 0;
-    padding-top: 10px;
+    padding-top: .625rem;
     border-top: 1px solid var(--ml-separator);
 }
 
 .golpilolz-media-library-widget .ml-field-count {
-    font-size: 13px;
+    font-size: .8125rem;
     color: var(--ml-text-secondary);
 }
 
@@ -360,8 +360,8 @@
     position: fixed;
     inset: 0;
     margin: auto;
-    width: min(1080px, calc(100vw - 48px));
-    height: min(720px, calc(100vh - 48px));
+    width: min(67.5rem, calc(100vw - 3rem));
+    height: min(45rem, calc(100vh - 3rem));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -369,7 +369,7 @@
     background: var(--ml-surface);
     color: var(--ml-text);
     box-shadow: var(--ml-shadow);
-    font: 14px/1.4 var(--ml-font);
+    font: .875rem/1.4 var(--ml-font);
     -webkit-font-smoothing: antialiased;
     text-align: left;
     animation: ml-panel-in .28s var(--ml-ease);
@@ -401,19 +401,19 @@
 
 .golpilolz-media-library .ml-close {
     position: absolute;
-    top: 10px;
-    right: 12px;
+    top: .625rem;
+    right: .75rem;
     z-index: 6;
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     padding: 0;
     border: none;
     border-radius: 50%;
     background: var(--ml-fill);
     color: var(--ml-text-secondary);
-    font-size: 12px;
+    font-size: .75rem;
     cursor: pointer;
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
 }
@@ -428,13 +428,13 @@
 .golpilolz-media-library .ml-header {
     display: flex;
     align-items: center;
-    min-height: 52px;
-    padding: 0 56px 0 20px;
+    min-height: 3.25rem;
+    padding: 0 3.5rem 0 1.25rem;
 }
 
 .golpilolz-media-library .ml-heading {
     margin: 0;
-    font-size: 17px;
+    font-size: 1.0625rem;
     font-weight: 600;
     letter-spacing: -.01em;
 }
@@ -443,19 +443,19 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
-    padding: 0 16px 12px 20px;
+    gap: .5rem 1rem;
+    padding: 0 1rem .75rem 1.25rem;
     border-bottom: 1px solid var(--ml-separator);
 }
 
 .golpilolz-media-library .ml-breadcrumb {
     display: flex;
     align-items: center;
-    flex: 1 1 200px;
+    flex: 1 1 12.5rem;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-crumb {
@@ -463,9 +463,9 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 4px 6px;
+    padding: .25rem .375rem;
     border: none;
-    border-radius: 6px;
+    border-radius: .375rem;
     background: none;
     color: var(--ml-accent);
     cursor: pointer;
@@ -489,7 +489,7 @@
 .golpilolz-media-library .ml-toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: .5rem;
 }
 
 .golpilolz-media-library .ml-segmented {
@@ -503,21 +503,21 @@
 .golpilolz-media-library .ml-icon-btn {
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 28px;
+    width: 2rem;
+    height: 1.75rem;
     padding: 0;
     border: none;
-    border-radius: 6px;
+    border-radius: .375rem;
     background: transparent;
     color: var(--ml-text-secondary);
-    font-size: 14px;
+    font-size: .875rem;
     cursor: pointer;
     transition: background-color .15s var(--ml-ease), color .15s var(--ml-ease), transform .1s ease-out;
 }
 
 .golpilolz-media-library .ml-icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     border-radius: var(--ml-radius-control);
 }
 
@@ -541,21 +541,21 @@
 
 .golpilolz-media-library .ml-search-icon {
     position: absolute;
-    left: 9px;
-    width: 14px;
-    height: 14px;
+    left: .5625rem;
+    width: .875rem;
+    height: .875rem;
     color: var(--ml-text-secondary);
     pointer-events: none;
 }
 
 .golpilolz-media-library .ml-search {
-    width: 220px;
-    height: 32px;
-    padding: 0 10px 0 30px;
+    width: 13.75rem;
+    height: 2rem;
+    padding: 0 .625rem 0 1.875rem;
     border: none;
     border-radius: var(--ml-radius-control);
     background: var(--ml-fill);
-    font-size: 13px;
+    font-size: .8125rem;
     outline: none;
     transition: box-shadow .15s var(--ml-ease), background-color .15s var(--ml-ease);
 }
@@ -578,12 +578,12 @@
 }
 
 .golpilolz-media-library .ml-tree {
-    flex: 0 0 240px;
-    padding: 10px 8px;
+    flex: 0 0 15rem;
+    padding: .625rem .5rem;
     overflow-y: auto;
     background: var(--ml-sidebar);
     border-right: 1px solid var(--ml-separator);
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-tree ul {
@@ -601,7 +601,7 @@
 .golpilolz-media-library .ml-tree-item > ul {
     display: none;
     flex-basis: 100%;
-    padding-left: 14px;
+    padding-left: .875rem;
 }
 
 .golpilolz-media-library .ml-tree-item.open > ul {
@@ -609,14 +609,14 @@
 }
 
 .golpilolz-media-library .ml-expand {
-    flex: 0 0 18px;
-    height: 30px;
+    flex: 0 0 1.125rem;
+    height: 1.875rem;
     padding: 0;
     border: none;
     background: none;
     color: var(--ml-text-secondary);
-    font-size: 15px;
-    line-height: 30px;
+    font-size: .9375rem;
+    line-height: 1.875rem;
     text-align: center;
 }
 
@@ -632,15 +632,15 @@
 .golpilolz-media-library .ml-tree-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: .5rem;
     flex: 1;
     min-width: 0;
-    height: 30px;
-    padding: 0 8px;
+    height: 1.875rem;
+    padding: 0 .5rem;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    border-radius: 6px;
+    border-radius: .375rem;
     cursor: pointer;
     transition: background-color .15s var(--ml-ease);
 }
@@ -668,10 +668,10 @@
     position: relative;
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr));
     align-content: start;
-    gap: 12px;
-    padding: 16px;
+    gap: .75rem;
+    padding: 1rem;
     overflow-y: auto;
     outline: none;
     scrollbar-width: thin;
@@ -688,8 +688,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px;
-    border-radius: 12px;
+    padding: .5rem;
+    border-radius: .75rem;
     cursor: pointer;
     user-select: none;
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
@@ -717,8 +717,8 @@
     width: 100%;
     aspect-ratio: 1;
     overflow: hidden;
-    border-radius: 10px;
-    background: center / 100px no-repeat;
+    border-radius: .625rem;
+    background: center / 6.25rem no-repeat;
     transition: box-shadow .15s var(--ml-ease);
 }
 
@@ -736,16 +736,16 @@
 .golpilolz-media-library .ml-file.active::after {
     content: '✓';
     position: absolute;
-    top: 14px;
-    right: 14px;
+    top: .875rem;
+    right: .875rem;
     display: grid;
     place-items: center;
-    width: 22px;
-    height: 22px;
+    width: 1.375rem;
+    height: 1.375rem;
     border-radius: 50%;
     background: var(--ml-accent);
     color: var(--ml-on-accent);
-    font-size: 12px;
+    font-size: .75rem;
     font-weight: 700;
     box-shadow: 0 0 0 2px var(--ml-surface);
 }
@@ -753,11 +753,11 @@
 .golpilolz-media-library .ml-thumb--folder {
     background: none;
     color: var(--ml-folder);
-    font-size: 64px;
+    font-size: 7.5rem;
 }
 
 .golpilolz-media-library .ml-thumb--picture,
-.golpilolz-media-library-widget .ml-thumb--picture { background-image: url('icons/picture.svg'); background-size: 28px; }
+.golpilolz-media-library-widget .ml-thumb--picture { background-image: url('icons/picture.svg'); background-size: 1.75rem; }
 .golpilolz-media-library .ml-thumb--pdf,
 .golpilolz-media-library-widget .ml-thumb--pdf { background-image: url('icons/pdf.svg'); }
 .golpilolz-media-library .ml-thumb--doc,
@@ -775,8 +775,8 @@
     -webkit-line-clamp: 2;
     overflow: hidden;
     width: 100%;
-    margin-top: 8px;
-    font-size: 12px;
+    margin-top: .5rem;
+    font-size: .75rem;
     line-height: 1.3;
     text-align: center;
     word-break: break-word;
@@ -787,7 +787,7 @@
     width: 100%;
     margin-top: 2px;
     color: var(--ml-text-secondary);
-    font-size: 11px;
+    font-size: .6875rem;
     font-variant-numeric: tabular-nums;
     line-height: 1.3;
     text-align: center;
@@ -800,58 +800,58 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 72px 16px;
+    padding: 4.5rem 1rem;
     color: var(--ml-text-secondary);
     text-align: center;
 }
 
 .golpilolz-media-library .ml-empty-icon {
-    margin-bottom: 12px;
-    font-size: 44px;
+    margin-bottom: .75rem;
+    font-size: 2.75rem;
     opacity: .5;
 }
 
 .golpilolz-media-library .ml-empty-title {
     margin: 0;
     color: var(--ml-text);
-    font-size: 15px;
+    font-size: .9375rem;
     font-weight: 600;
 }
 
 .golpilolz-media-library .ml-empty-hint {
-    margin: 4px 0 0;
-    font-size: 13px;
+    margin: .25rem 0 0;
+    font-size: .8125rem;
 }
 
 /* ---- Upload previews (Dropzone) ---- */
 
 .golpilolz-media-library .ml-infos {
-    max-height: 132px;
+    max-height: 8.25rem;
     overflow-y: auto;
 }
 
 .golpilolz-media-library .ml-infos .dz-preview {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 20px;
+    gap: .75rem;
+    padding: .5rem 1.25rem;
     border-top: 1px solid var(--ml-separator);
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-infos .dz-details {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: .625rem;
     width: 30%;
     min-width: 0;
 }
 
 .golpilolz-media-library .ml-infos .dz-details img {
-    width: 28px;
-    height: 28px;
+    width: 1.75rem;
+    height: 1.75rem;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: .375rem;
 }
 
 .golpilolz-media-library .ml-infos .dz-filename {
@@ -862,9 +862,9 @@
 
 .golpilolz-media-library .ml-infos .dz-progress {
     flex: 1;
-    height: 6px;
+    height: .375rem;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: 62.4375rem;
     background: var(--ml-fill);
 }
 
@@ -881,8 +881,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px 12px 20px;
+    gap: .75rem;
+    padding: .75rem 1rem .75rem 1.25rem;
     border-top: 1px solid var(--ml-separator);
 }
 
@@ -893,25 +893,25 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     color: var(--ml-text-secondary);
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-footer-actions {
     display: flex;
     flex-shrink: 0;
-    gap: 8px;
+    gap: .5rem;
 }
 
 /* ---- Buttons ---- */
 
 .golpilolz-media-library .ml-btn {
-    min-width: 88px;
-    height: 34px;
-    padding: 0 16px;
+    min-width: 5.5rem;
+    height: 2.125rem;
+    padding: 0 1rem;
     border: none;
     border-radius: var(--ml-radius-control);
     background: var(--ml-fill);
-    font-size: 14px;
+    font-size: .875rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color .15s var(--ml-ease), opacity .15s var(--ml-ease), transform .1s ease-out;
@@ -951,22 +951,22 @@
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 72px;
+    bottom: 4.5rem;
     z-index: 10;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: .5rem;
     pointer-events: none;
 }
 
 .golpilolz-media-library .ml-alert {
-    max-width: calc(100% - 32px);
-    padding: 10px 18px;
-    border-radius: 999px;
+    max-width: calc(100% - 2rem);
+    padding: .625rem 1.125rem;
+    border-radius: 62.4375rem;
     background: var(--ml-toast);
     color: #fff;
-    font-size: 13px;
+    font-size: .8125rem;
     font-weight: 500;
     box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
     animation: ml-toast-in .25s var(--ml-ease);
@@ -988,9 +988,9 @@
     z-index: 1001;
     display: flex;
     flex-direction: column;
-    min-width: 180px;
-    padding: 5px;
-    border-radius: 10px;
+    min-width: 11.25rem;
+    padding: .3125rem;
+    border-radius: .625rem;
     background: var(--ml-menu);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
@@ -999,12 +999,12 @@
 }
 
 .golpilolz-media-library .ml-context-item {
-    height: 30px;
-    padding: 0 10px;
+    height: 1.875rem;
+    padding: 0 .625rem;
     border: none;
-    border-radius: 6px;
+    border-radius: .375rem;
     background: none;
-    font-size: 13px;
+    font-size: .8125rem;
     text-align: left;
     cursor: pointer;
 }
@@ -1019,10 +1019,10 @@
 /* ---- Dialogs ---- */
 
 .golpilolz-media-library .ml-dialog {
-    width: min(420px, calc(100vw - 32px));
+    width: min(26.25rem, calc(100vw - 2rem));
     padding: 0;
     border: none;
-    border-radius: 14px;
+    border-radius: .875rem;
     background: var(--ml-surface);
     color: var(--ml-text);
     box-shadow: var(--ml-shadow);
@@ -1041,14 +1041,14 @@
 }
 
 .golpilolz-media-library .ml-dialog-title {
-    padding: 20px 20px 0;
-    font-size: 17px;
+    padding: 1.25rem 1.25rem 0;
+    font-size: 1.0625rem;
     font-weight: 600;
     letter-spacing: -.01em;
 }
 
 .golpilolz-media-library .ml-dialog-body {
-    padding: 14px 20px 4px;
+    padding: .875rem 1.25rem .25rem;
     color: var(--ml-text);
 }
 
@@ -1057,34 +1057,34 @@
 }
 
 .golpilolz-media-library .ml-dialog-error {
-    margin: 8px 20px 0;
+    margin: .5rem 1.25rem 0;
     color: var(--ml-danger);
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-dialog-buttons {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 20px;
+    gap: .5rem;
+    padding: 1.25rem;
 }
 
 .golpilolz-media-library .ml-label {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: .375rem;
     color: var(--ml-text-secondary);
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-input {
-    height: 36px;
-    padding: 0 10px;
+    height: 2.25rem;
+    padding: 0 .625rem;
     border: 1px solid var(--ml-separator);
     border-radius: var(--ml-radius-control);
     background: var(--ml-surface);
     color: var(--ml-text);
-    font-size: 14px;
+    font-size: .875rem;
     outline: none;
     transition: box-shadow .15s var(--ml-ease), border-color .15s var(--ml-ease);
 }
@@ -1097,13 +1097,13 @@
 .golpilolz-media-library .ml-move-list {
     max-height: 50vh;
     overflow-y: auto;
-    margin: 0 -8px;
+    margin: 0 -.5rem;
 }
 
 .golpilolz-media-library .ml-move-list ul {
     list-style: none;
     margin: 0;
-    padding-left: 14px;
+    padding-left: .875rem;
 }
 
 .golpilolz-media-library .ml-move-list > ul {
@@ -1113,10 +1113,10 @@
 .golpilolz-media-library .ml-move-folder {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 8px;
+    gap: .5rem;
+    padding: .4375rem .5rem;
     border-radius: var(--ml-radius-control);
-    font-size: 14px;
+    font-size: .875rem;
     cursor: pointer;
 }
 
@@ -1145,21 +1145,21 @@
 /* ---- File informations ---- */
 
 .golpilolz-media-library .ml-dialog.ml-dialog--info {
-    width: min(480px, calc(100vw - 32px));
+    width: min(30rem, calc(100vw - 2rem));
 }
 
 .golpilolz-media-library .ml-info-preview {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 160px;
-    margin-bottom: 14px;
+    height: 10rem;
+    margin-bottom: .875rem;
     overflow: hidden;
     border-radius: var(--ml-radius-control);
     background-color: var(--ml-hover);
     background-position: center;
     background-repeat: no-repeat;
-    background-size: 130px;
+    background-size: 8.125rem;
 }
 
 .golpilolz-media-library .ml-info-preview img {
@@ -1171,9 +1171,9 @@
 .golpilolz-media-library .ml-info-list {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
-    gap: 8px 16px;
+    gap: .5rem 1rem;
     margin: 0;
-    font-size: 13px;
+    font-size: .8125rem;
 }
 
 .golpilolz-media-library .ml-info-list dt {
@@ -1199,7 +1199,7 @@
     width: 7em;
     height: .9em;
     vertical-align: middle;
-    border-radius: 4px;
+    border-radius: .25rem;
     background: var(--ml-hover);
     animation: ml-pulse 1.2s ease-in-out infinite alternate;
 }
@@ -1207,7 +1207,7 @@
 /* ---- Crop ---- */
 
 .golpilolz-media-library .ml-dialog.ml-dialog--crop {
-    width: min(760px, calc(100vw - 32px));
+    width: min(47.5rem, calc(100vw - 2rem));
 }
 
 .golpilolz-media-library .ml-crop-toolbar {
@@ -1215,27 +1215,27 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: .5rem;
+    margin-bottom: .75rem;
 }
 
 .golpilolz-media-library .ml-crop-toolbar .ml-segment {
     width: auto;
-    padding: 0 10px;
-    font-size: 13px;
+    padding: 0 .625rem;
+    font-size: .8125rem;
     font-variant-numeric: tabular-nums;
 }
 
 .golpilolz-media-library .ml-crop-size {
     color: var(--ml-text-secondary);
-    font-size: 13px;
+    font-size: .8125rem;
     font-variant-numeric: tabular-nums;
 }
 
 .golpilolz-media-library .ml-crop-area {
     display: flex;
     justify-content: center;
-    padding: 12px;
+    padding: .75rem;
     border-radius: var(--ml-radius-control);
     background: var(--ml-fill);
 }
@@ -1255,7 +1255,7 @@
 .golpilolz-media-library .ml-crop-stage img {
     display: block;
     max-width: 100%;
-    max-height: min(60vh, 520px);
+    max-height: min(60vh, 32.5rem);
     pointer-events: none;
 }
 
@@ -1303,7 +1303,7 @@
 .golpilolz-media-library .ml-crop-handle--s {
     left: 0;
     right: 0;
-    height: 10px;
+    height: .625rem;
     cursor: ns-resize;
 }
 
@@ -1311,7 +1311,7 @@
 .golpilolz-media-library .ml-crop-handle--w {
     top: 0;
     bottom: 0;
-    width: 10px;
+    width: .625rem;
     cursor: ew-resize;
 }
 
@@ -1325,15 +1325,15 @@
 .golpilolz-media-library .ml-crop-handle--sw,
 .golpilolz-media-library .ml-crop-handle--se {
     z-index: 2;
-    width: 18px;
-    height: 18px;
+    width: 1.125rem;
+    height: 1.125rem;
     border: 0 solid #fff;
 }
 
-.golpilolz-media-library .ml-crop-handle--nw { top: -1px; left: -1px; border-width: 3px 0 0 3px; cursor: nwse-resize; }
-.golpilolz-media-library .ml-crop-handle--ne { top: -1px; right: -1px; border-width: 3px 3px 0 0; cursor: nesw-resize; }
-.golpilolz-media-library .ml-crop-handle--sw { bottom: -1px; left: -1px; border-width: 0 0 3px 3px; cursor: nesw-resize; }
-.golpilolz-media-library .ml-crop-handle--se { bottom: -1px; right: -1px; border-width: 0 3px 3px 0; cursor: nwse-resize; }
+.golpilolz-media-library .ml-crop-handle--nw { top: -1px; left: -1px; border-width: .1875rem 0 0 .1875rem; cursor: nwse-resize; }
+.golpilolz-media-library .ml-crop-handle--ne { top: -1px; right: -1px; border-width: .1875rem .1875rem 0 0; cursor: nesw-resize; }
+.golpilolz-media-library .ml-crop-handle--sw { bottom: -1px; left: -1px; border-width: 0 0 .1875rem .1875rem; cursor: nesw-resize; }
+.golpilolz-media-library .ml-crop-handle--se { bottom: -1px; right: -1px; border-width: 0 .1875rem .1875rem 0; cursor: nwse-resize; }
 
 /* ---- Zoom ---- */
 
@@ -1348,7 +1348,7 @@
     display: block;
     max-width: 90vw;
     max-height: 85vh;
-    border-radius: 12px;
+    border-radius: .75rem;
     box-shadow: var(--ml-shadow);
     animation: ml-zoom .22s var(--ml-ease);
 }
@@ -1386,18 +1386,18 @@
     }
 
     .golpilolz-media-library .ml-content {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 8px;
-        padding: 12px;
+        grid-template-columns: repeat(auto-fill, minmax(6.25rem, 1fr));
+        gap: .5rem;
+        padding: .75rem;
     }
 
     .golpilolz-media-library .ml-btn {
         min-width: 0;
-        height: 44px;
+        height: 2.75rem;
     }
 
     .golpilolz-media-library .ml-footer {
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        padding-bottom: max(.75rem, env(safe-area-inset-bottom));
     }
 }
 
@@ -1406,7 +1406,7 @@
 /* The panel animates "top"/"bottom", not "transform": a transformed ancestor would become
    the containing block of the position: fixed context menu and offset it. */
 @keyframes ml-panel-in {
-    from { opacity: 0; top: 24px; bottom: -24px; }
+    from { opacity: 0; top: 1.5rem; bottom: -1.5rem; }
     to { opacity: 1; top: 0; bottom: 0; }
 }
 
@@ -1426,7 +1426,7 @@
 }
 
 @keyframes ml-toast-in {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(.5rem); }
     to { opacity: 1; transform: translateY(0); }
 }
 
