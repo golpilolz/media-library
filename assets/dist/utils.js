@@ -45,3 +45,6 @@ export var formatSize = bytes => {
     maximumFractionDigits: digits
   }) + " " + units[unit];
 };
+
+// "1,5 Mo · 1600 × 900", or '' when neither is known.
+export var fileMeta = file => [typeof file.size === 'number' ? formatSize(file.size) : null, file.width && file.height ? file.width + " \xD7 " + file.height : null].filter(Boolean).join(' · ');

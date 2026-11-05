@@ -4,6 +4,7 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 
 import { LANG } from './lang.js';
 import { ROOT } from './utils.js';
+import { toMediaFile } from './api.js';
 export var createUploadZone = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* (options) {
     var {
@@ -36,11 +37,7 @@ export var createUploadZone = /*#__PURE__*/function () {
         options.onError(LANG.errorUpload);
         return;
       }
-      options.onUploaded({
-        id: json.file.id,
-        name: json.file.name,
-        url: json.file.url
-      }, json.file.parent);
+      options.onUploaded(toMediaFile(json.file), json.file.parent);
     });
     dropzone.on('error', (file, message) => {
       console.error(message);

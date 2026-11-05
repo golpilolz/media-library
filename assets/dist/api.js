@@ -17,8 +17,28 @@ var send = /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }();
+
+// A file of an endpoint response, without the extra keys (e.g. upload's `parent`).
+export var toMediaFile = _ref2 => {
+  var {
+    id,
+    name,
+    url,
+    size = null,
+    width = null,
+    height = null
+  } = _ref2;
+  return {
+    id,
+    name,
+    url,
+    size,
+    width,
+    height
+  };
+};
 export var fetchJson = /*#__PURE__*/function () {
-  var _ref2 = _asyncToGenerator(function* (url) {
+  var _ref3 = _asyncToGenerator(function* (url) {
     var response = yield fetch(url, {
       headers: {
         Accept: 'application/json'
@@ -30,7 +50,7 @@ export var fetchJson = /*#__PURE__*/function () {
     return response.json();
   });
   return function fetchJson(_x3) {
-    return _ref2.apply(this, arguments);
+    return _ref3.apply(this, arguments);
   };
 }();
 export var postJson = (url, body) => send(url, {
@@ -44,7 +64,7 @@ export var postJson = (url, body) => send(url, {
 
 // Same request as a Dropzone upload: multipart fields `file` and `folder`.
 export var uploadFile = /*#__PURE__*/function () {
-  var _ref3 = _asyncToGenerator(function* (url, file, name, folder) {
+  var _ref4 = _asyncToGenerator(function* (url, file, name, folder) {
     var formData = new FormData();
     formData.append('file', file, name);
     formData.append('folder', String(folder));
@@ -55,20 +75,16 @@ export var uploadFile = /*#__PURE__*/function () {
       },
       body: formData
     });
-    return {
-      id: json.file.id,
-      name: json.file.name,
-      url: json.file.url
-    };
+    return toMediaFile(json.file);
   });
   return function uploadFile(_x4, _x5, _x6, _x7) {
-    return _ref3.apply(this, arguments);
+    return _ref4.apply(this, arguments);
   };
 }();
 
 // GET `url`?file=<id>: the file details of the file_info endpoint.
 export var fetchFileInfo = /*#__PURE__*/function () {
-  var _ref4 = _asyncToGenerator(function* (url, id) {
+  var _ref5 = _asyncToGenerator(function* (url, id) {
     var target = new URL(url, window.location.href);
     target.searchParams.set('file', String(id));
     var json = yield send(target.toString(), {
@@ -79,6 +95,6 @@ export var fetchFileInfo = /*#__PURE__*/function () {
     return json.file;
   });
   return function fetchFileInfo(_x8, _x9) {
-    return _ref4.apply(this, arguments);
+    return _ref5.apply(this, arguments);
   };
 }();

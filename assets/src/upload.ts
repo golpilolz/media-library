@@ -3,6 +3,7 @@
 import type {MediaFile} from './types.js'
 import {LANG} from './lang.js'
 import {ROOT} from './utils.js'
+import {toMediaFile} from './api.js'
 
 export interface UploadZone {
     destroy(): void
@@ -56,7 +57,7 @@ export const createUploadZone = async (options: UploadOptions): Promise<UploadZo
             options.onError(LANG.errorUpload)
             return
         }
-        options.onUploaded({id: json.file.id, name: json.file.name, url: json.file.url}, json.file.parent)
+        options.onUploaded(toMediaFile(json.file), json.file.parent)
     })
     dropzone.on('error', (file: File, message: unknown) => {
         console.error(message)
