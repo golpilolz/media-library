@@ -41,3 +41,16 @@ export const byName = (asc: boolean) => (a: { name: string }, b: { name: string 
     (asc ? 1 : -1) * a.name.localeCompare(b.name, undefined, {sensitivity: 'base', numeric: true})
 
 export const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max)
+
+// 1536 -> "1,5 Ko" (French units, base 1024).
+export const formatSize = (bytes: number): string => {
+    const units = ['octets', 'Ko', 'Mo', 'Go', 'To']
+    let value = bytes
+    let unit = 0
+    while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024
+        unit++
+    }
+    const digits = unit === 0 || value >= 100 ? 0 : 1
+    return `${value.toLocaleString('fr-FR', {maximumFractionDigits: digits})} ${units[unit]}`
+}

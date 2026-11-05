@@ -1,13 +1,14 @@
 'use strict';
 
 import {Controller} from '@hotwired/stimulus';
-import type {MediaFile, MediaFolder, MenuItem, DialogButton} from './types.js'
+import type {MediaFile, MediaFileInfo, MediaFolder, MenuItem, DialogButton} from './types.js'
 import {LANG} from './lang.js'
 import {byName, escapeHtml, EVENT_PREFIX, extension, iconFor, isImage, ROOT} from './utils.js'
-import {fetchJson, postJson, uploadFile} from './api.js'
+import {fetchFileInfo, fetchJson, postJson, uploadFile} from './api.js'
 import {labelForm, openDialog, readTitle} from './dialog.js'
 import {closeContextMenu, openContextMenu} from './context-menu.js'
 import {layoutTemplate, previewTemplate} from './templates.js'
+import {infoTemplate} from './info.js'
 import {createUploadZone, type UploadZone} from './upload.js'
 import {CROP_TYPES, cropTemplate, cropToBlob, isCroppable, mountCropper, type Cropper} from './crop.js'
 
@@ -23,6 +24,7 @@ export default class extends Controller {
         renameFolderUrl: {type: String, default: ''},
         moveFileUrl: {type: String, default: ''},
         deleteFileUrl: {type: String, default: ''},
+        fileInfoUrl: {type: String, default: ''},
         multiple: {type: Boolean, default: false},
     }
 
@@ -43,6 +45,7 @@ export default class extends Controller {
     declare readonly renameFolderUrlValue: string
     declare readonly moveFileUrlValue: string
     declare readonly deleteFileUrlValue: string
+    declare readonly fileInfoUrlValue: string
     declare readonly multipleValue: boolean
 
     private folders: MediaFolder[] = []
@@ -504,6 +507,7 @@ export default class extends Controller {
         } else if (fileElement) {
             const file = this.getFile(Number(fileElement.dataset.fileId))
             items = [
+                {label: LANG.info, action: () => this.fileInfo(file)},
                 {label: LANG.rename, action: () => this.renameFile(file)},
                 ...(isCroppable(file) ? [{label: LANG.crop, action: () => this.cropFile(file)}] : []),
                 {label: LANG.move, action: () => this.moveFile(file)},
@@ -659,6 +663,44 @@ export default class extends Controller {
                 },
             },
         ])
+    }
+
+    // Show the file's details: what the popup knows right away, then what a file-info listener
+    // (respondWith a promise of a partial MediaFileInfo) or the file_info endpoint answers.
+    private async fileInfo(file: MediaFile) {
+        const path: string[] = []
+        for (let folder = this.getFileFolder(file.id); folder; folder = this.getFolder(folder.parent)) {
+            path.unshift(folder.name)
+        }
+        const local: MediaFileInfo = {...file, path}
+
+        this.dialog(LANG.titleFileInfo, infoTemplate(local, true), [{label: LANG.close, className: 'ml-btn-primary'}], 'ml-dialog--info')
+        const dialog = this.find<HTMLDialogElement>('.ml-dialog')
+        // Replaced when another dialog opens in the meantime: then the answer is dropped.
+        const body = dialog.querySelector<HTMLElement>('.ml-dialog-body')
+
+        let info: Partial<MediaFileInfo> | undefined
+        let failed = false
+        try {
+            let answered = false
+            info = await this.emit<Partial<MediaFileInfo>>('file-info', {file}, () => answered = true)
+            if (!answered && this.fileInfoUrlValue !== '') {
+                info = await fetchFileInfo(this.fileInfoUrlValue, file.id)
+            }
+        } catch (error) {
+            console.error(error)
+            failed = true
+        }
+        if (!body.isConnected || !dialog.open) {
+            return
+        }
+        // The popup's name, folder and URL stay authoritative: they include unsaved local changes.
+        body.innerHTML = infoTemplate({...info, ...local}, false)
+        if (failed) {
+            const error = dialog.querySelector<HTMLElement>('.ml-dialog-error')
+            error.textContent = LANG.errorFileInfo
+            error.hidden = false
+        }
     }
 
     // Crop an image into a new file of the same folder: the original is kept. The canvas does

@@ -44,6 +44,7 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             'rename_folder_url' => $options['rename_folder_url'] ?? '',
             'move_file_url' => $options['move_file_url'] ?? '',
             'delete_file_url' => $options['delete_file_url'] ?? '',
+            'file_info_url' => $options['file_info_url'] ?? '',
             'theme' => $theme,
             'block_prefixes' => $prefixes,
         ]);
@@ -72,6 +73,10 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             'rename_folder_url' => $this->urlGenerator->generate('golpilolz_media-library_rename_folder'),
             'move_file_url' => $this->urlGenerator->generate('golpilolz_media-library_move_file'),
             'delete_file_url' => $this->urlGenerator->generate('golpilolz_media-library_delete_file'),
+            // URL answering the "Informations" dialog (GET ?file=<id>, responds {file: {…}}): the bundle's
+            // endpoint by default. When null, a "file-info" listener can answer, otherwise the dialog only
+            // shows what the popup already knows (name, folder, URL).
+            'file_info_url' => $this->urlGenerator->generate('golpilolz_media-library_file_info'),
             // Theme of the widget and popup: adds the "ml-theme-<theme>" class. Built-in themes:
             // "default", "sonata" (Sonata Admin) and "easyadmin" (EasyAdmin).
             'theme' => $this->defaultTheme,
@@ -83,6 +88,7 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
         $resolver->setAllowedTypes('rename_folder_url', ['null', 'string']);
         $resolver->setAllowedTypes('move_file_url', ['null', 'string']);
         $resolver->setAllowedTypes('delete_file_url', ['null', 'string']);
+        $resolver->setAllowedTypes('file_info_url', ['null', 'string']);
         $resolver->setAllowedTypes('theme', ['string']);
         $resolver->setNormalizer('theme', static function (Options $options, string $theme): string {
             if (!preg_match('/^[a-z0-9_]+$/', $theme)) {
