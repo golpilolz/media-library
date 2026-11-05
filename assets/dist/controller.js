@@ -4,144 +4,16 @@ function _extends() { _extends = Object.assign ? Object.assign.bind() : function
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 import { Controller } from '@hotwired/stimulus';
-var ROOT = 0;
-var EVENT_PREFIX = 'golpilolz_media-library';
-var IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'];
-// Images the crop dialog can re-encode with a canvas, and the MIME type it writes them in.
-var CROP_TYPES = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp'
-};
-var CROP_RATIOS = [['Libre', null], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]];
-var CROP_HANDLES = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'];
-var ICONS = {
-  pdf: ['pdf'],
-  doc: ['doc', 'docx', 'odt', 'rtf'],
-  xls: ['xls', 'xlsx', 'ods', 'csv'],
-  zip: ['zip', 'rar', '7z', 'gz', 'tar']
-};
-var LANG = {
-  title: 'Médiathèque',
-  root: 'Accueil',
-  select: 'Sélectionner',
-  emptyFolder: 'Ce dossier est vide',
-  emptyFolderUpload: 'Glissez des fichiers ici pour les ajouter.',
-  noSelection: 'Aucun fichier sélectionné',
-  oneSelected: '1 fichier sélectionné',
-  manySelected: count => count + " fichiers s\xE9lectionn\xE9s",
-  search: 'Rechercher un fichier',
-  sortAsc: 'Trier de A à Z',
-  sortDesc: 'Trier de Z à A',
-  openFolder: 'Ouvrir le dossier',
-  zoom: 'Agrandir',
-  validate: 'Valider la sélection',
-  label: 'Libellé',
-  cancel: 'Annuler',
-  rename: 'Renommer',
-  move: 'Déplacer',
-  delete: 'Supprimer',
-  crop: 'Recadrer',
-  cropRatio: 'Proportions',
-  cropArea: 'Zone de recadrage',
-  croppedName: (name, ext) => name + " (recadr\xE9)." + ext,
-  remove: 'Retirer',
-  add: 'Ajouter',
-  newFolder: 'Nouveau dossier',
-  titleRenameFile: 'Renommer le fichier',
-  titleRenameFolder: 'Renommer le dossier',
-  titleAddFolder: 'Ajouter un dossier',
-  titleMoveFile: 'Déplacer le fichier',
-  titleDeleteFile: 'Supprimer le fichier ?',
-  titleCropFile: "Recadrer l'image",
-  confirmDeleteFile: 'Êtes-vous sûr de vouloir supprimer le fichier :',
-  emptyLabel: 'Veuillez entrer un libellé',
-  emptyTarget: 'Veuillez choisir un dossier',
-  errorAddFolder: 'Erreur lors de la création du dossier',
-  errorRenameFile: 'Erreur lors du renommage du fichier',
-  errorRenameFolder: 'Erreur lors du renommage du dossier',
-  errorMoveFile: 'Erreur lors du déplacement du fichier',
-  errorDeleteFile: 'Erreur lors de la suppression du fichier',
-  errorCropFile: "Erreur lors du recadrage de l'image",
-  errorCropLoad: "Impossible de charger l'image",
-  errorAction: 'Une erreur est survenue',
-  errorUpload: "Erreur lors de l'envoi du fichier",
-  errorUploadRoot: 'Ouvrez un dossier pour y déposer des fichiers',
-  successRenameFile: 'Le fichier a bien été renommé',
-  successRenameFolder: 'Le dossier a bien été renommé',
-  successUploadFile: 'Le fichier a bien été envoyé',
-  successMoveFile: 'Le fichier a bien été déplacé',
-  successDeleteFile: 'Le fichier a bien été supprimé',
-  successCropFile: "L'image recadrée a bien été enregistrée"
-};
-var escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-var extension = url => {
-  var path = url.split(/[?#]/)[0];
-  var dot = path.lastIndexOf('.');
-  return dot === -1 ? '' : path.slice(dot + 1).toLowerCase();
-};
-var isImage = file => IMAGE_EXTENSIONS.includes(extension(file.url));
-var isCroppable = file => extension(file.url) in CROP_TYPES;
-var clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+import { LANG } from './lang.js';
+import { byName, escapeHtml, EVENT_PREFIX, extension, iconFor, isImage, ROOT } from './utils.js';
+import { fetchJson, postJson, uploadFile } from './api.js';
+import { labelForm, openDialog, readTitle } from './dialog.js';
+import { closeContextMenu, openContextMenu } from './context-menu.js';
+import { layoutTemplate, previewTemplate } from './templates.js';
+import { CROP_TYPES, cropTemplate, cropToBlob, isCroppable, mountCropper } from './crop.js';
 
-// Resize `start` (image pixels) by dragging `handle` (n, se, w…) by dx/dy, within a W×H image.
-// With a ratio, the side opposite the handle stays put (or the center, for an edge handle).
-var resizeCrop = (start, handle, dx, dy, ratio, W, H, min) => {
-  var h = handle.includes('w') ? 'w' : handle.includes('e') ? 'e' : null;
-  var v = handle.includes('n') ? 'n' : handle.includes('s') ? 's' : null;
-  // Anchor: the opposite edge, or the center on the axis the handle doesn't drag.
-  var ax = h === 'w' ? start.x + start.width : h === 'e' ? start.x : start.x + start.width / 2;
-  var ay = v === 'n' ? start.y + start.height : v === 's' ? start.y : start.y + start.height / 2;
-  var maxWidth = h === 'w' ? ax : h === 'e' ? W - ax : 2 * Math.min(ax, W - ax);
-  var maxHeight = v === 'n' ? ay : v === 's' ? H - ay : 2 * Math.min(ay, H - ay);
-  var width = h === 'w' ? start.width - dx : h === 'e' ? start.width + dx : start.width;
-  var height = v === 'n' ? start.height - dy : v === 's' ? start.height + dy : start.height;
-  if (ratio) {
-    if (h === null) {
-      width = height * ratio;
-    }
-    width = clamp(width, Math.max(min, min * ratio), Math.min(maxWidth, maxHeight * ratio));
-    height = width / ratio;
-  } else {
-    width = h === null ? start.width : clamp(width, min, maxWidth);
-    height = v === null ? start.height : clamp(height, min, maxHeight);
-  }
-  return {
-    x: h === 'w' ? ax - width : h === 'e' ? ax : ax - width / 2,
-    y: v === 'n' ? ay - height : v === 's' ? ay : ay - height / 2,
-    width,
-    height
-  };
-};
-
-// Largest crop of `ratio` (whole image when null) centered in a W×H image.
-var fitCrop = (ratio, W, H) => {
-  var width = W;
-  var height = H;
-  if (ratio) {
-    W / H > ratio ? width = H * ratio : height = W / ratio;
-  }
-  return {
-    x: (W - width) / 2,
-    y: (H - height) / 2,
-    width,
-    height
-  };
-};
-var iconFor = file => {
-  var ext = extension(file.url);
-  for (var [icon, extensions] of Object.entries(ICONS)) {
-    if (extensions.includes(ext)) {
-      return icon;
-    }
-  }
-  return 'txt';
-};
-var byName = asc => (a, b) => (asc ? 1 : -1) * a.name.localeCompare(b.name, undefined, {
-  sensitivity: 'base',
-  numeric: true
-});
+// The popup's Stimulus controller: state, rendering and actions. Markup and the
+// self-contained pieces (dialogs, context menu, cropper, HTTP calls) live in the sibling modules.
 export default class _class extends Controller {
   constructor() {
     super(...arguments);
@@ -176,13 +48,13 @@ export default class _class extends Controller {
       _this.loaderTarget.hidden = false;
       _this.selectedFileIds = new Set(_this.inputValues());
       if (!_this.rendered) {
-        _this.contentTarget.innerHTML = _this.layoutTemplate();
+        _this.contentTarget.innerHTML = layoutTemplate();
         _this.bindEvents();
         _this.rendered = true;
       }
       var folders = null;
       try {
-        folders = yield _this.fetchFolders();
+        folders = yield fetchJson(_this.foldersUrlValue);
       } catch (error) {
         console.error(error);
       }
@@ -230,20 +102,6 @@ export default class _class extends Controller {
 
   // ---- Data ------------------------------------------------------------
 
-  fetchFolders() {
-    var _this2 = this;
-    return _asyncToGenerator(function* () {
-      var response = yield fetch(_this2.foldersUrlValue, {
-        headers: {
-          Accept: 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(response.status + " " + response.statusText);
-      }
-      return response.json();
-    })();
-  }
   setFolders(folders) {
     this.folders = folders.map(folder => {
       var _folder$parent, _folder$files;
@@ -297,10 +155,6 @@ export default class _class extends Controller {
 
   // ---- Rendering -------------------------------------------------------
 
-  layoutTemplate() {
-    var searchIcon = '<svg class="ml-search-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-    return "\n            <header class=\"ml-header\">\n                <h2 class=\"ml-heading\">" + LANG.title + "</h2>\n            </header>\n            <div class=\"ml-toolbar\">\n                <nav class=\"ml-breadcrumb\" aria-label=\"Chemin\"></nav>\n                <div class=\"ml-toolbar-actions\">\n                    <div class=\"ml-segmented\" role=\"group\" aria-label=\"Tri\">\n                        <button type=\"button\" class=\"ml-segment active\" data-ml-action=\"sort-asc\" title=\"" + LANG.sortAsc + "\" aria-label=\"" + LANG.sortAsc + "\"><span class=\"icon-sort-alpha-asc\"></span></button>\n                        <button type=\"button\" class=\"ml-segment\" data-ml-action=\"sort-desc\" title=\"" + LANG.sortDesc + "\" aria-label=\"" + LANG.sortDesc + "\"><span class=\"icon-sort-alpha-desc\"></span></button>\n                    </div>\n                    <button type=\"button\" class=\"ml-icon-btn\" data-ml-action=\"open-folder\" title=\"" + LANG.openFolder + "\" aria-label=\"" + LANG.openFolder + "\"><span class=\"icon-folder-open\"></span></button>\n                    <button type=\"button\" class=\"ml-icon-btn\" data-ml-action=\"zoom\" title=\"" + LANG.zoom + "\" aria-label=\"" + LANG.zoom + "\"><span class=\"icon-zoom-in\"></span></button>\n                    <label class=\"ml-search-field\">" + searchIcon + "\n                        <input type=\"search\" class=\"ml-search\" placeholder=\"" + LANG.search + "\" aria-label=\"" + LANG.search + "\">\n                    </label>\n                </div>\n            </div>\n            <div class=\"ml-body\">\n                <nav class=\"ml-tree\" aria-label=\"Dossiers\"></nav>\n                <div class=\"ml-content\" tabindex=\"-1\"></div>\n            </div>\n            <div class=\"ml-infos\"></div>\n            <footer class=\"ml-footer\">\n                <span class=\"ml-status\" aria-live=\"polite\"></span>\n                <div class=\"ml-footer-actions\">\n                    <button type=\"button\" class=\"ml-btn\" data-ml-action=\"cancel\">" + LANG.cancel + "</button>\n                    <button type=\"button\" class=\"ml-btn ml-btn-primary\" data-ml-action=\"validate\" disabled>" + LANG.select + "</button>\n                </div>\n            </footer>\n            <div class=\"ml-alerts\" aria-live=\"polite\"></div>\n            <div class=\"ml-context-menu\" role=\"menu\" hidden></div>\n            <dialog class=\"ml-zoom\"><img alt=\"\"></dialog>\n            <dialog class=\"ml-dialog\"></dialog>";
-  }
   render() {
     this.renderTree();
     this.renderBreadcrumb();
@@ -557,7 +411,7 @@ export default class _class extends Controller {
     }
     this.writeInputs(ids);
     if (this.hasPreviewTarget) {
-      this.previewTarget.innerHTML = files.map(file => this.previewTemplate(file)).join('');
+      this.previewTarget.innerHTML = files.map(file => previewTemplate(file, this.multipleValue, this.identifier)).join('');
     }
     this.toggleButtons();
   }
@@ -581,12 +435,6 @@ export default class _class extends Controller {
       bubbles: true
     }));
   }
-
-  // Keep in sync with the widget template.
-  previewTemplate(file) {
-    var name = escapeHtml(file.name);
-    return "<div class=\"ml-preview-item\" title=\"" + name + "\">\n            <span class=\"ml-preview-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">" + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "</span>\n            <span class=\"ml-preview-name\">" + name + "</span>\n            " + (this.multipleValue ? "<button type=\"button\" class=\"ml-preview-remove\" data-action=\"" + this.identifier + "#remove\" data-" + this.identifier + "-id-param=\"" + file.id + "\" aria-label=\"" + LANG.remove + " " + name + "\" title=\"" + LANG.remove + "\">\n                <svg viewBox=\"0 0 12 12\" width=\"10\" height=\"10\" aria-hidden=\"true\"><path d=\"M2 2l8 8M10 2l-8 8\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"/></svg>\n            </button>" : '') + "\n        </div>";
-  }
   toggleButtons() {
     var filled = this.inputValues().length > 0;
     this.emptyTargets.forEach(element => element.hidden = filled);
@@ -600,7 +448,6 @@ export default class _class extends Controller {
   // ---- Context menu ----------------------------------------------------
 
   onContextMenu(event) {
-    var _menu$querySelector;
     var target = event.target;
     if (!target.closest('.ml-content')) {
       return;
@@ -636,34 +483,10 @@ export default class _class extends Controller {
         action: () => this.addFolder()
       }];
     }
-    var menu = this.find('.ml-context-menu');
-    menu.innerHTML = items.map((item, index) => "<button type=\"button\" role=\"menuitem\" class=\"ml-context-item\" data-index=\"" + index + "\">" + escapeHtml(item.label) + "</button>").join('');
-    menu.querySelectorAll('.ml-context-item').forEach(button => {
-      button.addEventListener('click', () => {
-        this.closeContextMenu();
-        items[Number(button.dataset.index)].action();
-      });
-    });
-    menu.hidden = false;
-
-    // Keep the menu inside the viewport.
-    var {
-      innerWidth,
-      innerHeight
-    } = window;
-    var {
-      width,
-      height
-    } = menu.getBoundingClientRect();
-    menu.style.left = Math.min(event.clientX, innerWidth - width - 4) + "px";
-    menu.style.top = Math.min(event.clientY, innerHeight - height - 4) + "px";
-    (_menu$querySelector = menu.querySelector('button')) == null || _menu$querySelector.focus();
+    openContextMenu(this.find('.ml-context-menu'), items, event.clientX, event.clientY);
   }
   closeContextMenu() {
-    var menu = this.contentTarget.querySelector('.ml-context-menu');
-    if (menu) {
-      menu.hidden = true;
-    }
+    closeContextMenu(this.contentTarget.querySelector('.ml-context-menu'));
   }
 
   // ---- Actions with dialogs -------------------------------------------
@@ -672,39 +495,26 @@ export default class _class extends Controller {
   // A listener can persist the change by calling event.detail.respondWith(promise):
   // the dialog waits for it and keeps the change local only once it resolves.
 
-  labelForm(value) {
-    if (value === void 0) {
-      value = '';
-    }
-    return "<label class=\"ml-label\">" + LANG.label + "\n            <input type=\"text\" class=\"ml-input\" name=\"title\" value=\"" + escapeHtml(value) + "\" required autofocus>\n        </label>";
-  }
-  readTitle(dialog) {
-    var title = dialog.querySelector('[name="title"]').value.trim();
-    if (title === '') {
-      throw new Error(LANG.emptyLabel);
-    }
-    return title;
-  }
   renameFile(file) {
-    var _this3 = this;
-    this.dialog(LANG.titleRenameFile, this.labelForm(file.name), [{
+    var _this2 = this;
+    this.dialog(LANG.titleRenameFile, labelForm(file.name), [{
       label: LANG.cancel
     }, {
       label: LANG.rename,
       className: 'ml-btn-primary',
       action: function () {
         var _action = _asyncToGenerator(function* (dialog) {
-          var name = _this3.readTitle(dialog);
-          yield _this3.persist('rename-file', {
+          var name = readTitle(dialog);
+          yield _this2.persist('rename-file', {
             file,
             name
-          }, _this3.renameFileUrlValue, {
+          }, _this2.renameFileUrlValue, {
             file: file.id,
             name
           }, LANG.errorRenameFile);
           file.name = name;
-          _this3.renderContent();
-          _this3.alert(LANG.successRenameFile);
+          _this2.renderContent();
+          _this2.alert(LANG.successRenameFile);
         });
         function action(_x) {
           return _action.apply(this, arguments);
@@ -714,25 +524,25 @@ export default class _class extends Controller {
     }]);
   }
   renameFolder(folder) {
-    var _this4 = this;
-    this.dialog(LANG.titleRenameFolder, this.labelForm(folder.name), [{
+    var _this3 = this;
+    this.dialog(LANG.titleRenameFolder, labelForm(folder.name), [{
       label: LANG.cancel
     }, {
       label: LANG.rename,
       className: 'ml-btn-primary',
       action: function () {
         var _action2 = _asyncToGenerator(function* (dialog) {
-          var name = _this4.readTitle(dialog);
-          yield _this4.persist('rename-folder', {
+          var name = readTitle(dialog);
+          yield _this3.persist('rename-folder', {
             folder,
             name
-          }, _this4.renameFolderUrlValue, {
+          }, _this3.renameFolderUrlValue, {
             folder: folder.id,
             name
           }, LANG.errorRenameFolder);
           folder.name = name;
-          _this4.render();
-          _this4.alert(LANG.successRenameFolder);
+          _this3.render();
+          _this3.alert(LANG.successRenameFolder);
         });
         function action(_x2) {
           return _action2.apply(this, arguments);
@@ -742,9 +552,9 @@ export default class _class extends Controller {
     }]);
   }
   addFolder() {
-    var _this5 = this;
+    var _this4 = this;
     var parent = this.activeFolderId;
-    this.dialog(LANG.titleAddFolder, this.labelForm(), [{
+    this.dialog(LANG.titleAddFolder, labelForm(), [{
       label: LANG.cancel
     }, {
       label: LANG.add,
@@ -752,21 +562,21 @@ export default class _class extends Controller {
       action: function () {
         var _action3 = _asyncToGenerator(function* (dialog) {
           var _response$id, _response;
-          var name = _this5.readTitle(dialog);
+          var name = readTitle(dialog);
           var response;
           try {
-            var _yield$_this5$emit, _this5$getFolder;
-            response = (_yield$_this5$emit = yield _this5.emit('add-folder', {
-              parent: (_this5$getFolder = _this5.getFolder(parent)) != null ? _this5$getFolder : null,
+            var _yield$_this4$emit, _this4$getFolder;
+            response = (_yield$_this4$emit = yield _this4.emit('add-folder', {
+              parent: (_this4$getFolder = _this4.getFolder(parent)) != null ? _this4$getFolder : null,
               name
-            })) != null ? _yield$_this5$emit : yield _this5.createFolder(name, parent);
+            })) != null ? _yield$_this4$emit : yield _this4.createFolder(name, parent);
           } catch (error) {
             console.error(error);
             throw new Error(LANG.errorAddFolder);
           }
           // Without a backend id, use a temporary negative one.
-          var id = (_response$id = (_response = response) == null ? void 0 : _response.id) != null ? _response$id : Math.min(0, ..._this5.folders.map(folder => folder.id)) - 1;
-          _this5.folders.push({
+          var id = (_response$id = (_response = response) == null ? void 0 : _response.id) != null ? _response$id : Math.min(0, ..._this4.folders.map(folder => folder.id)) - 1;
+          _this4.folders.push({
             id,
             name,
             type: 'folder',
@@ -775,7 +585,7 @@ export default class _class extends Controller {
             open: false,
             files: []
           });
-          _this5.render();
+          _this4.render();
         });
         function action(_x3) {
           return _action3.apply(this, arguments);
@@ -787,26 +597,17 @@ export default class _class extends Controller {
 
   // Persist a folder with the folder_url endpoint, when no add-folder listener answered.
   createFolder(name, parent) {
-    var _this6 = this;
+    var _this5 = this;
     return _asyncToGenerator(function* () {
-      if (_this6.folderUrlValue === '') {
+      if (_this5.folderUrlValue === '') {
         return undefined;
       }
-      var response = yield fetch(_this6.folderUrlValue, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        },
-        body: JSON.stringify({
-          name,
-          parent
-        })
+      var json = yield postJson(_this5.folderUrlValue, {
+        name,
+        parent
       });
-      var json = yield response.json().catch(() => null);
-      if (!response.ok || (json == null ? void 0 : json.result) !== 'success' || typeof json.id !== 'number') {
-        var _json$message;
-        throw new Error((_json$message = json == null ? void 0 : json.message) != null ? _json$message : "HTTP " + response.status);
+      if (typeof json.id !== 'number') {
+        throw new Error('The folder endpoint answered without an id');
       }
       return {
         id: json.id
@@ -814,7 +615,7 @@ export default class _class extends Controller {
     })();
   }
   moveFile(file) {
-    var _this7 = this;
+    var _this6 = this;
     var source = this.getFileFolder(file.id);
     var branch = parent => {
       var children = this.getChildFolders(parent).sort(byName(true));
@@ -832,11 +633,11 @@ export default class _class extends Controller {
           if (!checked) {
             throw new Error(LANG.emptyTarget);
           }
-          var target = _this7.getFolder(Number(checked.value));
-          yield _this7.persist('move-file', {
+          var target = _this6.getFolder(Number(checked.value));
+          yield _this6.persist('move-file', {
             file,
             folder: target
-          }, _this7.moveFileUrlValue, {
+          }, _this6.moveFileUrlValue, {
             file: file.id,
             folder: target.id
           }, LANG.errorMoveFile);
@@ -844,8 +645,8 @@ export default class _class extends Controller {
             source.files = source.files.filter(other => other.id !== file.id);
           }
           target.files = [...((_target$files = target.files) != null ? _target$files : []), file];
-          _this7.renderContent();
-          _this7.alert(LANG.successMoveFile);
+          _this6.renderContent();
+          _this6.alert(LANG.successMoveFile);
         });
         function action(_x4) {
           return _action4.apply(this, arguments);
@@ -859,27 +660,15 @@ export default class _class extends Controller {
   // when no listener answered. An empty url means the change only lives in the popup.
   // A listener's rejection is shown as is; an endpoint failure is logged and shown as `errorMessage`.
   persist(event, detail, url, body, errorMessage) {
-    var _this8 = this;
+    var _this7 = this;
     return _asyncToGenerator(function* () {
       var answered = false;
-      yield _this8.emit(event, detail, () => answered = true);
+      yield _this7.emit(event, detail, () => answered = true);
       if (answered || url === '') {
         return;
       }
       try {
-        var response = yield fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-          },
-          body: JSON.stringify(body)
-        });
-        var json = yield response.json().catch(() => null);
-        if (!response.ok || (json == null ? void 0 : json.result) !== 'success') {
-          var _json$message2;
-          throw new Error((_json$message2 = json == null ? void 0 : json.message) != null ? _json$message2 : "HTTP " + response.status);
-        }
+        yield postJson(url, body);
       } catch (error) {
         console.error(error);
         throw new Error(errorMessage);
@@ -887,7 +676,7 @@ export default class _class extends Controller {
     })();
   }
   deleteFile(file) {
-    var _this9 = this;
+    var _this8 = this;
     this.dialog(LANG.titleDeleteFile, "<p>" + LANG.confirmDeleteFile + " <strong>" + escapeHtml(file.name) + "</strong></p>", [{
       label: LANG.cancel
     }, {
@@ -895,18 +684,18 @@ export default class _class extends Controller {
       className: 'ml-btn-danger',
       action: function () {
         var _action5 = _asyncToGenerator(function* () {
-          yield _this9.persist('delete-file', {
+          yield _this8.persist('delete-file', {
             file
-          }, _this9.deleteFileUrlValue, {
+          }, _this8.deleteFileUrlValue, {
             file: file.id
           }, LANG.errorDeleteFile);
-          var folder = _this9.getFileFolder(file.id);
+          var folder = _this8.getFileFolder(file.id);
           if (folder) {
             folder.files = folder.files.filter(other => other.id !== file.id);
           }
-          _this9.selectedFileIds.delete(file.id);
-          _this9.renderContent();
-          _this9.alert(LANG.successDeleteFile);
+          _this8.selectedFileIds.delete(file.id);
+          _this8.renderContent();
+          _this8.alert(LANG.successDeleteFile);
         });
         function action() {
           return _action5.apply(this, arguments);
@@ -919,212 +708,61 @@ export default class _class extends Controller {
   // Crop an image into a new file of the same folder: the original is kept. The canvas does
   // the cropping, then the result goes to the upload endpoint, unless a crop-file listener answers.
   cropFile(file) {
-    var _this10 = this;
-    var body = "<div class=\"ml-crop-toolbar\">\n                <div class=\"ml-segmented\" role=\"group\" aria-label=\"" + LANG.cropRatio + "\">" + CROP_RATIOS.map((_ref2, index) => {
-      var [label] = _ref2;
-      return "<button type=\"button\" class=\"ml-segment " + (index === 0 ? 'active' : '') + "\" data-ratio=\"" + index + "\">" + label + "</button>";
-    }).join('') + "</div>\n                <span class=\"ml-crop-size\" aria-live=\"polite\"></span>\n            </div>\n            <div class=\"ml-crop-area\">\n                <div class=\"ml-crop-stage\">\n                    <img src=\"" + escapeHtml(file.url) + "\" alt=\"\" draggable=\"false\">\n                    <div class=\"ml-crop-box\" tabindex=\"0\" aria-label=\"" + LANG.cropArea + "\" hidden>" + CROP_HANDLES.map(handle => "<span class=\"ml-crop-handle ml-crop-handle--" + handle + "\" data-handle=\"" + handle + "\"></span>").join('') + "</div>\n                </div>\n            </div>";
-    var crop = null;
-    var ratio = null;
-    this.dialog(LANG.titleCropFile, body, [{
+    var _this9 = this;
+    var cropper;
+    this.dialog(LANG.titleCropFile, cropTemplate(file.url), [{
       label: LANG.cancel
     }, {
       label: LANG.crop,
       className: 'ml-btn-primary',
       action: function () {
-        var _action6 = _asyncToGenerator(function* (dialog) {
+        var _action6 = _asyncToGenerator(function* () {
           var _folder$files4;
-          if (!crop) {
+          var rect = cropper.crop();
+          if (!rect) {
             throw new Error(LANG.errorCropLoad);
           }
-          var folder = _this10.getFileFolder(file.id);
+          var folder = _this9.getFileFolder(file.id);
           var ext = extension(file.url);
           var name = LANG.croppedName(file.name.replace(/\.[^.]+$/, ''), ext);
-          var rect = {
-            x: Math.round(crop.x),
-            y: Math.round(crop.y),
-            width: Math.round(crop.width),
-            height: Math.round(crop.height)
-          };
-          var cropped = yield _this10.saveCrop(file, folder, dialog.querySelector('.ml-crop-stage img'), rect, name, CROP_TYPES[ext]);
-          folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), cropped];
-          if (!_this10.multipleValue) {
-            _this10.selectedFileIds.clear();
+          var blob;
+          try {
+            blob = yield cropToBlob(cropper.image, rect, CROP_TYPES[ext]);
+          } catch (error) {
+            console.error(error);
+            throw new Error(LANG.errorCropFile);
           }
-          _this10.selectedFileIds.add(cropped.id);
-          _this10.renderContent();
-          _this10.alert(LANG.successCropFile);
+          var cropped = yield _this9.saveCrop({
+            file,
+            folder,
+            crop: rect,
+            blob,
+            name
+          });
+          folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), cropped];
+          if (!_this9.multipleValue) {
+            _this9.selectedFileIds.clear();
+          }
+          _this9.selectedFileIds.add(cropped.id);
+          _this9.renderContent();
+          _this9.alert(LANG.successCropFile);
         });
-        function action(_x5) {
+        function action() {
           return _action6.apply(this, arguments);
         }
         return action;
       }()
     }], 'ml-dialog--crop');
-    var dialog = this.find('.ml-dialog');
-    var stage = dialog.querySelector('.ml-crop-stage');
-    var img = stage.querySelector('img');
-    var box = stage.querySelector('.ml-crop-box');
-    var size = dialog.querySelector('.ml-crop-size');
-    var W = () => img.naturalWidth;
-    var H = () => img.naturalHeight;
-    // Image pixels per CSS pixel on screen.
-    var pixelRatio = () => W() / img.getBoundingClientRect().width;
-    var draw = () => {
-      if (!crop) {
-        return;
-      }
-      var scale = img.clientWidth / W();
-      box.style.left = crop.x * scale + "px";
-      box.style.top = crop.y * scale + "px";
-      box.style.width = crop.width * scale + "px";
-      box.style.height = crop.height * scale + "px";
-      size.textContent = Math.round(crop.width) + " \xD7 " + Math.round(crop.height) + " px";
-    };
-    var init = () => {
-      crop = fitCrop(ratio, W(), H());
-      box.hidden = false;
-      draw();
-    };
-    if (img.complete && img.naturalWidth > 0) {
-      init();
-    } else {
-      img.addEventListener('load', init, {
-        once: true
-      });
-      img.addEventListener('error', () => {
-        var error = dialog.querySelector('.ml-dialog-error');
-        error.textContent = LANG.errorCropLoad;
-        error.hidden = false;
-      }, {
-        once: true
-      });
-    }
-    var observer = new ResizeObserver(draw);
-    observer.observe(img);
-    dialog.addEventListener('close', () => observer.disconnect(), {
-      once: true
-    });
-    dialog.querySelectorAll('[data-ratio]').forEach(button => button.addEventListener('click', () => {
-      dialog.querySelectorAll('[data-ratio]').forEach(other => other.classList.toggle('active', other === button));
-      ratio = CROP_RATIOS[Number(button.dataset.ratio)][1];
-      if (crop) {
-        crop = fitCrop(ratio, W(), H());
-        draw();
-      }
-    }));
-
-    // Drag a handle to resize, inside the box to move it, elsewhere on the image to draw a new one.
-    stage.addEventListener('pointerdown', event => {
-      var _target$dataset$handl;
-      if (!crop || event.button !== 0) {
-        return;
-      }
-      event.preventDefault();
-      var target = event.target;
-      var handle = (_target$dataset$handl = target.dataset.handle) != null ? _target$dataset$handl : target.closest('.ml-crop-box') ? 'move' : 'new';
-      var bounds = img.getBoundingClientRect();
-      var k = pixelRatio();
-      var point = e => ({
-        x: clamp((e.clientX - bounds.left) * k, 0, W()),
-        y: clamp((e.clientY - bounds.top) * k, 0, H())
-      });
-      var origin = point(event);
-      var start = _extends({}, crop);
-      var min = Math.min(16 * k, W(), H());
-      box.focus({
-        preventScroll: true
-      });
-      var move = e => {
-        var current = point(e);
-        var dx = current.x - origin.x;
-        var dy = current.y - origin.y;
-        if (handle === 'move') {
-          crop = _extends({}, start, {
-            x: clamp(start.x + dx, 0, W() - start.width),
-            y: clamp(start.y + dy, 0, H() - start.height)
-          });
-        } else if (handle === 'new') {
-          var width = Math.abs(dx);
-          var height = Math.abs(dy);
-          if (ratio) {
-            width / height > ratio ? width = height * ratio : height = width / ratio;
-          }
-          crop = {
-            x: dx < 0 ? origin.x - width : origin.x,
-            y: dy < 0 ? origin.y - height : origin.y,
-            width,
-            height
-          };
-        } else {
-          crop = resizeCrop(start, handle, dx, dy, ratio, W(), H(), min);
-        }
-        draw();
-      };
-      var end = () => {
-        // A click (or a tiny drag) on the image keeps the previous box.
-        if (handle === 'new' && (crop.width < min || crop.height < min)) {
-          crop = start;
-          draw();
-        }
-        stage.removeEventListener('pointermove', move);
-        stage.removeEventListener('pointerup', end);
-        stage.removeEventListener('pointercancel', end);
-      };
-      stage.setPointerCapture(event.pointerId);
-      stage.addEventListener('pointermove', move);
-      stage.addEventListener('pointerup', end);
-      stage.addEventListener('pointercancel', end);
-    });
-
-    // Arrow keys move the box (Shift: 10 times faster).
-    box.addEventListener('keydown', event => {
-      var step = {
-        ArrowLeft: [-1, 0],
-        ArrowRight: [1, 0],
-        ArrowUp: [0, -1],
-        ArrowDown: [0, 1]
-      }[event.key];
-      if (!crop || !step) {
-        return;
-      }
-      event.preventDefault();
-      var distance = (event.shiftKey ? 10 : 1) * pixelRatio();
-      crop = _extends({}, crop, {
-        x: clamp(crop.x + step[0] * distance, 0, W() - crop.width),
-        y: clamp(crop.y + step[1] * distance, 0, H() - crop.height)
-      });
-      draw();
-    });
+    cropper = mountCropper(this.find('.ml-dialog'));
   }
 
-  // Crop `img` to `rect` (image pixels) and store it as a new file of `folder`: a crop-file
-  // listener can answer with a promise of {id, name?, url}, otherwise it's POSTed to upload_url.
-  saveCrop(file, folder, img, rect, name, type) {
-    var _this11 = this;
+  // Store a cropped image as a new file of `detail.folder`: a crop-file listener can answer
+  // with a promise of {id, name?, url}, otherwise it's POSTed to upload_url.
+  saveCrop(detail) {
+    var _this10 = this;
     return _asyncToGenerator(function* () {
-      var blob;
-      try {
-        blob = yield new Promise((resolve, reject) => {
-          var canvas = document.createElement('canvas');
-          canvas.width = rect.width;
-          canvas.height = rect.height;
-          canvas.getContext('2d').drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
-          // Throws a SecurityError for a cross-origin image served without CORS headers.
-          canvas.toBlob(result => result ? resolve(result) : reject(new Error('Empty canvas')), type, .92);
-        });
-      } catch (error) {
-        console.error(error);
-        throw new Error(LANG.errorCropFile);
-      }
       var answered = false;
-      var response = yield _this11.emit('crop-file', {
-        file,
-        folder,
-        crop: rect,
-        blob,
-        name
-      }, () => answered = true);
+      var response = yield _this10.emit('crop-file', detail, () => answered = true);
       if (answered) {
         var _response$name;
         if (typeof (response == null ? void 0 : response.id) !== 'number' || typeof response.url !== 'string') {
@@ -1133,34 +771,15 @@ export default class _class extends Controller {
         }
         return {
           id: response.id,
-          name: (_response$name = response.name) != null ? _response$name : name,
+          name: (_response$name = response.name) != null ? _response$name : detail.name,
           url: response.url
         };
       }
       try {
-        if (_this11.uploadUrlValue === '') {
+        if (_this10.uploadUrlValue === '') {
           throw new Error('No upload_url and no crop-file listener');
         }
-        var formData = new FormData();
-        formData.append('file', blob, name);
-        formData.append('folder', String(folder.id));
-        var result = yield fetch(_this11.uploadUrlValue, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json'
-          },
-          body: formData
-        });
-        var json = yield result.json().catch(() => null);
-        if (!result.ok || (json == null ? void 0 : json.result) !== 'success') {
-          var _json$message3;
-          throw new Error((_json$message3 = json == null ? void 0 : json.message) != null ? _json$message3 : "HTTP " + result.status);
-        }
-        return {
-          id: json.file.id,
-          name: json.file.name,
-          url: json.file.url
-        };
+        return yield uploadFile(_this10.uploadUrlValue, detail.blob, detail.name, detail.folder.id);
       } catch (error) {
         console.error(error);
         throw new Error(LANG.errorCropFile);
@@ -1171,70 +790,27 @@ export default class _class extends Controller {
     if (className === void 0) {
       className = '';
     }
-    // No <form> here: the widget usually sits inside the page's Symfony form, where a nested
-    // <form> is dropped by the HTML parser. All buttons are type="button" for the same reason.
-    var dialog = this.find('.ml-dialog');
-    dialog.className = "ml-dialog " + className;
-    dialog.innerHTML = "<div class=\"ml-dialog-form\">\n            <header class=\"ml-dialog-title\">" + escapeHtml(title) + "</header>\n            <div class=\"ml-dialog-body\">" + body + "</div>\n            <p class=\"ml-dialog-error\" hidden></p>\n            <footer class=\"ml-dialog-buttons\">" + buttons.map((button, index) => {
-      var _button$className;
-      return "<button type=\"button\" class=\"ml-btn " + ((_button$className = button.className) != null ? _button$className : '') + "\" data-index=\"" + index + "\">" + escapeHtml(button.label) + "</button>";
-    }).join('') + "\n            </footer>\n        </div>";
-    var error = dialog.querySelector('.ml-dialog-error');
-    var run = /*#__PURE__*/function () {
-      var _ref3 = _asyncToGenerator(function* (button, element) {
-        error.hidden = true;
-        element.disabled = true;
-        try {
-          if (button.action && (yield button.action(dialog)) === false) {
-            return;
-          }
-          dialog.close();
-        } catch (e) {
-          error.textContent = e instanceof Error ? e.message : LANG.errorAction;
-          error.hidden = false;
-        } finally {
-          element.disabled = false;
-        }
-      });
-      return function run(_x6, _x7) {
-        return _ref3.apply(this, arguments);
-      };
-    }();
-    var elements = [...dialog.querySelectorAll('.ml-dialog-buttons button')];
-    elements.forEach(element => {
-      element.addEventListener('click', () => run(buttons[Number(element.dataset.index)], element));
-    });
-    // Enter in an input triggers the last (primary) button.
-    dialog.querySelector('.ml-dialog-body').addEventListener('keydown', event => {
-      if (event.key === 'Enter' && event.target.matches('input')) {
-        event.preventDefault();
-        var primary = elements[elements.length - 1];
-        if (!primary.disabled) {
-          run(buttons[buttons.length - 1], primary);
-        }
-      }
-    });
-    dialog.showModal();
+    openDialog(this.find('.ml-dialog'), title, body, buttons, className);
   }
 
   // ---- Upload (Dropzone) ----------------------------------------------
 
   initDropzone(session) {
-    var _this12 = this;
+    var _this11 = this;
     return _asyncToGenerator(function* () {
-      if (_this12.uploadUrlValue === '' || _this12.dropzone) {
+      if (_this11.uploadUrlValue === '' || _this11.dropzone) {
         return;
       }
       var {
         default: Dropzone
       } = yield import('dropzone');
-      if (session !== _this12.session || _this12.dropzone) {
+      if (session !== _this11.session || _this11.dropzone) {
         return;
       }
-      var targetFolderId = _this12.activeFolderId;
-      var dropzone = new Dropzone(_this12.find('.ml-content'), {
-        url: _this12.uploadUrlValue,
-        previewsContainer: _this12.find('.ml-infos'),
+      var targetFolderId = _this11.activeFolderId;
+      var dropzone = new Dropzone(_this11.find('.ml-content'), {
+        url: _this11.uploadUrlValue,
+        previewsContainer: _this11.find('.ml-infos'),
         clickable: false,
         // Files belong to a folder: the root has none to store them in.
         accept: (file, done) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
@@ -1243,14 +819,14 @@ export default class _class extends Controller {
       });
       dropzone.on('drop', event => {
         var folder = event.target.closest('.ml-folder');
-        targetFolderId = folder ? Number(folder.dataset.folderId) : _this12.activeFolderId;
+        targetFolderId = folder ? Number(folder.dataset.folderId) : _this11.activeFolderId;
       });
       dropzone.on('sending', (file, xhr, formData) => {
-        var _this12$getFolder;
+        var _this11$getFolder;
         formData.append('folder', String(targetFolderId));
-        _this12.dispatchEvent('upload-sending', {
+        _this11.dispatchEvent('upload-sending', {
           file,
-          folder: (_this12$getFolder = _this12.getFolder(targetFolderId)) != null ? _this12$getFolder : null,
+          folder: (_this11$getFolder = _this11.getFolder(targetFolderId)) != null ? _this11$getFolder : null,
           xhr,
           formData
         });
@@ -1258,10 +834,10 @@ export default class _class extends Controller {
       dropzone.on('success', (file, json) => {
         if ((json == null ? void 0 : json.result) !== 'success') {
           console.error(json);
-          _this12.alert(LANG.errorUpload, 'danger');
+          _this11.alert(LANG.errorUpload, 'danger');
           return;
         }
-        var folder = _this12.getFolder(json.file.parent);
+        var folder = _this11.getFolder(json.file.parent);
         if (folder) {
           var _folder$files5;
           folder.files = [...((_folder$files5 = folder.files) != null ? _folder$files5 : []), {
@@ -1269,19 +845,19 @@ export default class _class extends Controller {
             name: json.file.name,
             url: json.file.url
           }];
-          _this12.renderContent();
+          _this11.renderContent();
         }
-        _this12.alert(LANG.successUploadFile);
+        _this11.alert(LANG.successUploadFile);
       });
       dropzone.on('error', (file, message) => {
         console.error(message);
-        _this12.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
+        _this11.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
       });
       dropzone.on('complete', file => {
         var _file$previewElement;
         return (_file$previewElement = file.previewElement) == null ? void 0 : _file$previewElement.remove();
       });
-      _this12.dropzone = dropzone;
+      _this11.dropzone = dropzone;
     })();
   }
   destroyDropzone() {
@@ -1310,10 +886,10 @@ export default class _class extends Controller {
   // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
   // onRespond is called when a listener answers, to tell it apart from a promise resolving to undefined.
   emit(name, detail, onRespond) {
-    var _this13 = this;
+    var _this12 = this;
     return _asyncToGenerator(function* () {
       var pending;
-      _this13.dispatchEvent(name, _extends({}, detail, {
+      _this12.dispatchEvent(name, _extends({}, detail, {
         respondWith: promise => {
           pending = promise;
           onRespond == null || onRespond();
