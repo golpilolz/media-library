@@ -30,9 +30,17 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[Route('/media-library', name: 'golpilolz_media-library_')]
 class MediaLibraryController extends AbstractController
 {
+    /**
+     * Every folder with its files, for the popup. A file's `size` (bytes) and, for an image, `width` and
+     * `height` (pixels) are read from the stored file when its URL is under `upload_path`, null otherwise.
+     */
     #[Route('/folders', name: 'folders', methods: ['GET'])]
-    public function foldersAction(Request $request, FolderRepository $folderRepository): JsonResponse
-    {
+    public function foldersAction(
+        Request $request,
+        FolderRepository $folderRepository,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_dir')] string $uploadDir,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_path')] string $uploadPath,
+    ): JsonResponse {
         $json = [];
 
         foreach ($folderRepository->findAll() as $folder) {
@@ -43,6 +51,7 @@ class MediaLibraryController extends AbstractController
                     'id' => $file->getId(),
                     'name' => $file->getName(),
                     'url' => $this->publicUrl($request, $file),
+                    ...$this->storedDetails($file, $uploadDir, $uploadPath),
                 ];
             }
 
@@ -188,25 +197,17 @@ class MediaLibraryController extends AbstractController
             'url' => $this->publicUrl($request, $media),
             'path' => $folders,
             'extension' => strtolower(pathinfo($media->getUrl(), PATHINFO_EXTENSION)),
-            'size' => null,
+            ...$this->storedDetails($media, $uploadDir, $uploadPath),
             'mimeType' => null,
             'modifiedAt' => null,
-            'width' => null,
-            'height' => null,
         ];
 
         $path = $this->storedPath($media, $uploadDir, $uploadPath);
         if ($path !== null && is_file($path)) {
-            $info['size'] = filesize($path) ?: 0;
             $modifiedAt = filemtime($path);
             $info['modifiedAt'] = $modifiedAt === false ? null : date(\DATE_ATOM, $modifiedAt);
             if (function_exists('mime_content_type')) {
                 $info['mimeType'] = mime_content_type($path) ?: null;
-            }
-            $size = @getimagesize($path);
-            if ($size !== false && $size[0] > 0) {
-                [$info['width'], $info['height']] = $size;
-                $info['mimeType'] ??= $size['mime'] ?? null;
             }
         }
 
@@ -303,6 +304,7 @@ class MediaLibraryController extends AbstractController
                 'id' => $media->getId(),
                 'name' => $media->getName(),
                 'url' => $this->publicUrl($request, $media),
+                ...$this->storedDetails($media, $uploadDir, $uploadPath),
                 'parent' => $folder->getId(),
             ],
         ]);
@@ -311,6 +313,31 @@ class MediaLibraryController extends AbstractController
     private function publicUrl(Request $request, File $file): string
     {
         return $request->getSchemeAndHttpHost() . $request->getBasePath() . '/' . $file->getUrl();
+    }
+
+    /**
+     * Size in bytes and, for an image, dimensions in pixels of a stored file (see storedPath()).
+     * Null when unknown: file outside `upload_path`, missing, or not an image for width/height.
+     *
+     * @return array{size: ?int, width: ?int, height: ?int}
+     */
+    private function storedDetails(File $file, string $uploadDir, string $uploadPath): array
+    {
+        $details = ['size' => null, 'width' => null, 'height' => null];
+        $path = $this->storedPath($file, $uploadDir, $uploadPath);
+        if ($path === null || !is_file($path)) {
+            return $details;
+        }
+
+        $size = filesize($path);
+        $details['size'] = $size === false ? null : $size;
+        // Reads the image header only. SVGs and non-images return false.
+        $image = @getimagesize($path);
+        if ($image !== false && $image[0] > 0) {
+            [$details['width'], $details['height']] = $image;
+        }
+
+        return $details;
     }
 
     /**

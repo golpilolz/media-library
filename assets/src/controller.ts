@@ -3,7 +3,7 @@
 import {Controller} from '@hotwired/stimulus';
 import type {MediaFile, MediaFileInfo, MediaFolder, MenuItem, DialogButton} from './types.js'
 import {LANG} from './lang.js'
-import {byName, escapeHtml, EVENT_PREFIX, extension, iconFor, isImage, ROOT} from './utils.js'
+import {byName, escapeHtml, EVENT_PREFIX, extension, fileMeta, iconFor, isImage, ROOT} from './utils.js'
 import {fetchFileInfo, fetchJson, postJson, uploadFile} from './api.js'
 import {labelForm, openDialog, readTitle} from './dialog.js'
 import {closeContextMenu, openContextMenu} from './context-menu.js'
@@ -257,6 +257,7 @@ export default class extends Controller {
                     ${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}
                 </div>
                 <span class="ml-title">${escapeHtml(file.name)}</span>
+                ${fileMeta(file) ? `<span class="ml-meta">${escapeHtml(fileMeta(file))}</span>` : ''}
             </div>`).join('')
         this.updateFooter()
     }
@@ -695,7 +696,7 @@ export default class extends Controller {
             return
         }
         // The popup's name, folder and URL stay authoritative: they include unsaved local changes.
-        body.innerHTML = infoTemplate({...info, ...local}, false)
+        body.innerHTML = infoTemplate({...local, ...info, name: local.name, url: local.url, path: local.path}, false)
         if (failed) {
             const error = dialog.querySelector<HTMLElement>('.ml-dialog-error')
             error.textContent = LANG.errorFileInfo
@@ -749,7 +750,7 @@ export default class extends Controller {
                 console.error('crop-file: respondWith() must resolve with {id, url}', response)
                 throw new Error(LANG.errorCropFile)
             }
-            return {id: response.id, name: response.name ?? detail.name, url: response.url}
+            return {size: null, width: null, height: null, ...response, id: response.id, name: response.name ?? detail.name, url: response.url}
         }
 
         try {

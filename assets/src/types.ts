@@ -4,6 +4,10 @@ export interface MediaFile {
     id: number
     name: string
     url: string
+    // Bytes and pixels, from the bundle's endpoints: null/absent when unknown (or not an image).
+    size?: number | null
+    width?: number | null
+    height?: number | null
 }
 
 export interface MediaFolder {
@@ -21,11 +25,8 @@ export interface MediaFolder {
 export interface MediaFileInfo extends MediaFile {
     path?: string[]
     extension?: string | null
-    size?: number | null
     mimeType?: string | null
     modifiedAt?: string | null
-    width?: number | null
-    height?: number | null
 }
 
 export interface DialogButton {

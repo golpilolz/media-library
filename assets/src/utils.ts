@@ -54,3 +54,9 @@ export const formatSize = (bytes: number): string => {
     const digits = unit === 0 || value >= 100 ? 0 : 1
     return `${value.toLocaleString('fr-FR', {maximumFractionDigits: digits})} ${units[unit]}`
 }
+
+// "1,5 Mo · 1600 × 900", or '' when neither is known.
+export const fileMeta = (file: MediaFile): string => [
+    typeof file.size === 'number' ? formatSize(file.size) : null,
+    file.width && file.height ? `${file.width} × ${file.height}` : null,
+].filter(Boolean).join(' · ')

@@ -12,6 +12,10 @@ const send = async (url: string, init: RequestInit): Promise<any> => {
     return json
 }
 
+// A file of an endpoint response, without the extra keys (e.g. upload's `parent`).
+export const toMediaFile = ({id, name, url, size = null, width = null, height = null}: any): MediaFile =>
+    ({id, name, url, size, width, height})
+
 export const fetchJson = async <T>(url: string): Promise<T> => {
     const response = await fetch(url, {headers: {Accept: 'application/json'}})
     if (!response.ok) {
@@ -32,7 +36,7 @@ export const uploadFile = async (url: string, file: Blob, name: string, folder: 
     formData.append('file', file, name)
     formData.append('folder', String(folder))
     const json = await send(url, {method: 'POST', headers: {Accept: 'application/json'}, body: formData})
-    return {id: json.file.id, name: json.file.name, url: json.file.url}
+    return toMediaFile(json.file)
 }
 
 // GET `url`?file=<id>: the file details of the file_info endpoint.

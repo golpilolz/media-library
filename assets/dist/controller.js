@@ -5,7 +5,7 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 import { Controller } from '@hotwired/stimulus';
 import { LANG } from './lang.js';
-import { byName, escapeHtml, EVENT_PREFIX, extension, iconFor, isImage, ROOT } from './utils.js';
+import { byName, escapeHtml, EVENT_PREFIX, extension, fileMeta, iconFor, isImage, ROOT } from './utils.js';
 import { fetchFileInfo, fetchJson, postJson, uploadFile } from './api.js';
 import { labelForm, openDialog, readTitle } from './dialog.js';
 import { closeContextMenu, openContextMenu } from './context-menu.js';
@@ -208,7 +208,7 @@ export default class _class extends Controller {
       this.updateFooter();
       return;
     }
-    content.innerHTML = folders.map(folder => "\n            <div class=\"ml-item ml-folder\" data-folder-id=\"" + folder.id + "\" title=\"" + escapeHtml(folder.name) + "\">\n                <div class=\"ml-thumb ml-thumb--folder\"><span class=\"icon-folder\" aria-hidden=\"true\"></span></div>\n                <span class=\"ml-title\">" + escapeHtml(folder.name) + "</span>\n            </div>").join('') + files.map(file => "\n            <div class=\"ml-item ml-file " + (this.selectedFileIds.has(file.id) ? 'active' : '') + "\" data-file-id=\"" + file.id + "\" title=\"" + escapeHtml(file.name) + "\">\n                <div class=\"ml-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">\n                    " + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "\n                </div>\n                <span class=\"ml-title\">" + escapeHtml(file.name) + "</span>\n            </div>").join('');
+    content.innerHTML = folders.map(folder => "\n            <div class=\"ml-item ml-folder\" data-folder-id=\"" + folder.id + "\" title=\"" + escapeHtml(folder.name) + "\">\n                <div class=\"ml-thumb ml-thumb--folder\"><span class=\"icon-folder\" aria-hidden=\"true\"></span></div>\n                <span class=\"ml-title\">" + escapeHtml(folder.name) + "</span>\n            </div>").join('') + files.map(file => "\n            <div class=\"ml-item ml-file " + (this.selectedFileIds.has(file.id) ? 'active' : '') + "\" data-file-id=\"" + file.id + "\" title=\"" + escapeHtml(file.name) + "\">\n                <div class=\"ml-thumb ml-thumb--" + (isImage(file) ? 'picture' : iconFor(file)) + "\">\n                    " + (isImage(file) ? "<img src=\"" + escapeHtml(file.url) + "\" alt=\"\" loading=\"lazy\">" : '') + "\n                </div>\n                <span class=\"ml-title\">" + escapeHtml(file.name) + "</span>\n                " + (fileMeta(file) ? "<span class=\"ml-meta\">" + escapeHtml(fileMeta(file)) + "</span>" : '') + "\n            </div>").join('');
     this.updateFooter();
   }
 
@@ -747,7 +747,11 @@ export default class _class extends Controller {
         return;
       }
       // The popup's name, folder and URL stay authoritative: they include unsaved local changes.
-      body.innerHTML = infoTemplate(_extends({}, info, local), false);
+      body.innerHTML = infoTemplate(_extends({}, local, info, {
+        name: local.name,
+        url: local.url,
+        path: local.path
+      }), false);
       if (failed) {
         var error = dialog.querySelector('.ml-dialog-error');
         error.textContent = LANG.errorFileInfo;
@@ -820,11 +824,15 @@ export default class _class extends Controller {
           console.error('crop-file: respondWith() must resolve with {id, url}', response);
           throw new Error(LANG.errorCropFile);
         }
-        return {
+        return _extends({
+          size: null,
+          width: null,
+          height: null
+        }, response, {
           id: response.id,
           name: (_response$name = response.name) != null ? _response$name : detail.name,
           url: response.url
-        };
+        });
       }
       try {
         if (_this11.uploadUrlValue === '') {

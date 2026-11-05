@@ -69,6 +69,11 @@ The widget renders a button opening the popup; folders and files are loaded from
 JSON route `golpilolz_media-library_folders` (`GET /media-library/folders`). Double-click a
 file (or, with `multiple`, select files and press ✓) to write its id to the hidden input.
 
+Each file tile shows its size and, for an image, its resolution ("1,5 Mo · 1920 × 1280"). The
+route sends them as `size` (bytes), `width` and `height` (pixels) on each file, read from the
+stored file when its URL is under `upload_path` (`null` otherwise, and `width`/`height` are
+`null` for non-images and SVGs). A file without them just shows its name.
+
 With `multiple`, the widget shows the selected files as tiles: × removes one, "Ajouter" reopens
 the popup with the current selection preselected, "Tout retirer" clears the field. An empty
 multiple field submits nothing (its hidden input is disabled), so the collection is emptied.
@@ -98,6 +103,8 @@ must respond with:
 ```json
 {"result": "success", "file": {"id": 12, "name": "photo.jpg", "url": "https://…/photo.jpg", "parent": 3}}
 ```
+
+`size`, `width` and `height` are optional in that `file` (the bundle's endpoint sends them, see above).
 
 Any other `result` is shown as an upload error.
 
