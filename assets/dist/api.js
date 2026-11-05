@@ -65,3 +65,20 @@ export var uploadFile = /*#__PURE__*/function () {
     return _ref3.apply(this, arguments);
   };
 }();
+
+// GET `url`?file=<id>: the file details of the file_info endpoint.
+export var fetchFileInfo = /*#__PURE__*/function () {
+  var _ref4 = _asyncToGenerator(function* (url, id) {
+    var target = new URL(url, window.location.href);
+    target.searchParams.set('file', String(id));
+    var json = yield send(target.toString(), {
+      headers: {
+        Accept: 'application/json'
+      }
+    });
+    return json.file;
+  });
+  return function fetchFileInfo(_x8, _x9) {
+    return _ref4.apply(this, arguments);
+  };
+}();

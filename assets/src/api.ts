@@ -1,7 +1,7 @@
 // Calls to the bundle's endpoints. They answer {"result": "success", …}; anything else
 // (or an HTTP error) rejects with the server message, or the HTTP status.
 
-import type {MediaFile} from './types.js'
+import type {MediaFile, MediaFileInfo} from './types.js'
 
 const send = async (url: string, init: RequestInit): Promise<any> => {
     const response = await fetch(url, init)
@@ -33,4 +33,12 @@ export const uploadFile = async (url: string, file: Blob, name: string, folder: 
     formData.append('folder', String(folder))
     const json = await send(url, {method: 'POST', headers: {Accept: 'application/json'}, body: formData})
     return {id: json.file.id, name: json.file.name, url: json.file.url}
+}
+
+// GET `url`?file=<id>: the file details of the file_info endpoint.
+export const fetchFileInfo = async (url: string, id: number): Promise<MediaFileInfo> => {
+    const target = new URL(url, window.location.href)
+    target.searchParams.set('file', String(id))
+    const json = await send(target.toString(), {headers: {Accept: 'application/json'}})
+    return json.file
 }

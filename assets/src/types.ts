@@ -16,6 +16,18 @@ export interface MediaFolder {
     files?: MediaFile[]
 }
 
+// The "Informations" dialog's data: from the file_info endpoint or a file-info listener.
+// Every field but those of MediaFile is optional (null/absent = unknown).
+export interface MediaFileInfo extends MediaFile {
+    path?: string[]
+    extension?: string | null
+    size?: number | null
+    mimeType?: string | null
+    modifiedAt?: string | null
+    width?: number | null
+    height?: number | null
+}
+
 export interface DialogButton {
     label: string
     className?: string

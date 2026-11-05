@@ -30,3 +30,18 @@ export var byName = asc => (a, b) => (asc ? 1 : -1) * a.name.localeCompare(b.nam
   numeric: true
 });
 export var clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+// 1536 -> "1,5 Ko" (French units, base 1024).
+export var formatSize = bytes => {
+  var units = ['octets', 'Ko', 'Mo', 'Go', 'To'];
+  var value = bytes;
+  var unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  var digits = unit === 0 || value >= 100 ? 0 : 1;
+  return value.toLocaleString('fr-FR', {
+    maximumFractionDigits: digits
+  }) + " " + units[unit];
+};

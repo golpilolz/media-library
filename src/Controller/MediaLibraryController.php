@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
 use Symfony\Component\Routing\Attribute\Route;
@@ -159,6 +160,60 @@ class MediaLibraryController extends AbstractController
     }
 
     /**
+     * Details of one file for the popup's "Informations" dialog: `GET /media-library/files/info?file=<id>`.
+     * Size, MIME type, modification date and image dimensions are read from the stored file when its URL
+     * is under `upload_path` (null otherwise, or when it's missing). A missing or non-integer `file` gets a 404.
+     */
+    #[Route('/files/info', name: 'file_info', methods: ['GET'])]
+    public function fileInfoAction(
+        Request $request,
+        #[MapQueryParameter(options: ['min_range' => 1])] int $file,
+        FileRepository $fileRepository,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_dir')] string $uploadDir,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_path')] string $uploadPath,
+    ): JsonResponse {
+        $media = $fileRepository->find($file);
+        if (!$media instanceof File) {
+            return $this->uploadError('Unknown file.');
+        }
+
+        $folders = [];
+        for ($folder = $media->getFolder(); $folder instanceof Folder; $folder = $folder->getParent()) {
+            array_unshift($folders, $folder->getName());
+        }
+
+        $info = [
+            'id' => $media->getId(),
+            'name' => $media->getName(),
+            'url' => $this->publicUrl($request, $media),
+            'path' => $folders,
+            'extension' => strtolower(pathinfo($media->getUrl(), PATHINFO_EXTENSION)),
+            'size' => null,
+            'mimeType' => null,
+            'modifiedAt' => null,
+            'width' => null,
+            'height' => null,
+        ];
+
+        $path = $this->storedPath($media, $uploadDir, $uploadPath);
+        if ($path !== null && is_file($path)) {
+            $info['size'] = filesize($path) ?: 0;
+            $modifiedAt = filemtime($path);
+            $info['modifiedAt'] = $modifiedAt === false ? null : date(\DATE_ATOM, $modifiedAt);
+            if (function_exists('mime_content_type')) {
+                $info['mimeType'] = mime_content_type($path) ?: null;
+            }
+            $size = @getimagesize($path);
+            if ($size !== false && $size[0] > 0) {
+                [$info['width'], $info['height']] = $size;
+                $info['mimeType'] ??= $size['mime'] ?? null;
+            }
+        }
+
+        return new JsonResponse(['result' => 'success', 'file' => $info]);
+    }
+
+    /**
      * Deletes a file from the popup: the File entity, and the stored file when it lives in `upload_dir`.
      * JSON body `{"file": <file id>}`, see DeleteFilePayload. A file still referenced by another
      * entity gets a 409. An invalid body gets a 422 (400 if it isn't JSON).
@@ -185,13 +240,9 @@ class MediaLibraryController extends AbstractController
         }
 
         // Only remove files the upload endpoint stored: a URL outside upload_path is left alone.
-        $prefix = trim($uploadPath, '/') . '/';
-        if (str_starts_with($url, $prefix)) {
-            $filename = substr($url, strlen($prefix));
-            $path = $uploadDir . '/' . $filename;
-            if ($filename === basename($filename) && is_file($path)) {
-                @unlink($path);
-            }
+        $path = $this->storedPath($url, $uploadDir, $uploadPath);
+        if ($path !== null && is_file($path)) {
+            @unlink($path);
         }
 
         return new JsonResponse(['result' => 'success']);
@@ -260,6 +311,21 @@ class MediaLibraryController extends AbstractController
     private function publicUrl(Request $request, File $file): string
     {
         return $request->getSchemeAndHttpHost() . $request->getBasePath() . '/' . $file->getUrl();
+    }
+
+    /**
+     * Local path of a file the upload endpoint stored (URL directly under `upload_path`), or null.
+     */
+    private function storedPath(File|string $file, string $uploadDir, string $uploadPath): ?string
+    {
+        $url = $file instanceof File ? $file->getUrl() : $file;
+        $prefix = trim($uploadPath, '/') . '/';
+        if (!str_starts_with($url, $prefix)) {
+            return null;
+        }
+        $filename = substr($url, strlen($prefix));
+
+        return $filename !== '' && $filename === basename($filename) ? $uploadDir . '/' . $filename : null;
     }
 
     private function uploadError(string $message, int $status = Response::HTTP_BAD_REQUEST): JsonResponse

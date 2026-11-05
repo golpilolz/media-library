@@ -60,6 +60,7 @@ $builder->add('file', GolpilolzMediaLibrarySingleType::class, [
     'rename_folder_url' => null,  // folder rename URL; same
     'move_file_url' => null,      // file move URL; same
     'delete_file_url' => null,    // file deletion URL; same
+    'file_info_url' => null,      // file details URL ("Informations"); defaults to the bundle's endpoint, null = listener or local data only
     'theme' => 'easyadmin',       // defaults to the `theme` config key
 ]);
 ```
@@ -72,7 +73,7 @@ With `multiple`, the widget shows the selected files as tiles: × removes one, "
 the popup with the current selection preselected, "Tout retirer" clears the field. An empty
 multiple field submits nothing (its hidden input is disabled), so the collection is emptied.
 
-Right-click in the file grid for: rename / crop / move / delete a file, rename a folder, create a
+Right-click in the file grid for: show the informations of / rename / crop / move / delete a file, rename a folder, create a
 folder. The popup has no jQuery and no CSS framework dependency (native `<dialog>`).
 
 ### Upload
@@ -114,6 +115,26 @@ unless a `crop-file` listener answers: its promise must resolve with the new fil
 `{id, url, name?}`. With `upload_url` set to `null` and no listener, cropping fails. The image
 must be same-origin (or served with CORS headers): a canvas can't export a cross-origin image.
 
+### File informations
+
+"Informations" (right-click on a file) opens a dialog with a preview, the name, the folder path
+and the URL, then fills in the details only the server knows: MIME type, size, image dimensions
+and modification date. They come from `golpilolz_media-library_file_info`
+(`GET /media-library/files/info?file=<id>`, set by the `file_info_url` form option):
+
+```json
+{"result": "success", "file": {"id": 12, "name": "photo.jpg", "url": "https://…/photo.jpg",
+ "path": ["Photos", "2026"], "extension": "jpg", "size": 81774, "mimeType": "image/jpeg",
+ "modifiedAt": "2026-11-04T11:29:53+00:00", "width": 1600, "height": 900}}
+```
+
+`path` lists the folder names from the root. `size`, `mimeType`, `modifiedAt`, `width` and
+`height` are read from the stored file, so they are `null` when its URL isn't under
+`upload_path` or the file is missing; the dialog hides unknown fields. A `file-info` listener
+can answer instead, resolving with any of those fields. With `file_info_url` set to `null` and no
+listener, the dialog only shows what the popup knows. When the request fails, the dialog keeps
+the known fields and shows an error.
+
 ### Events
 
 The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-library:`:
@@ -126,6 +147,7 @@ The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-lib
 | `rename-folder` | `folder`, `name` |
 | `move-file` | `file`, `folder` (target) |
 | `delete-file` | `file` |
+| `file-info` | `file` (answer with `respondWith()`, see [File informations](#file-informations)) |
 | `crop-file` | `file` (original), `folder`, `crop` (`{x, y, width, height}` in image pixels), `blob` (cropped image), `name` |
 | `add-folder` | `parent` (folder or `null` for root), `name` |
 | `upload-sending` | `file`, `folder`, `xhr`, `formData` |
@@ -155,17 +177,18 @@ image) is refused with a 409.
 ### Endpoint errors
 
 The bundle's endpoints map their input with `#[MapRequestPayload]` / `#[MapUploadedFile]`
-(DTOs in `Dto\`: `AddFolderPayload`, `RenameFilePayload`, `RenameFolderPayload`, `MoveFilePayload`, `DeleteFilePayload`, `UploadPayload`), so a malformed request is rejected by
+(DTOs in `Dto\`: `AddFolderPayload`, `RenameFilePayload`, `RenameFolderPayload`, `MoveFilePayload`, `DeleteFilePayload`, `UploadPayload`; the `files/info` query parameter with `#[MapQueryParameter]`), so a malformed request is rejected by
 Symfony before the controller runs:
 
 | Endpoint | Request | Status |
 |---|---|---|
 | all | body that can't be parsed, or upload without a `folder` field | 400 |
-| all but `upload` | `Content-Type` other than JSON | 415 |
+| all `POST` but `upload` | `Content-Type` other than JSON | 415 |
 | `POST /media-library/folders` | blank `name` (after trimming), `name` over 255 characters, non-integer `parent` | 422 |
 | `POST /media-library/files/rename`, `/folders/rename` | `file`/`folder` missing or not a positive integer, blank `name` (after trimming), `name` over 255 characters | 422 |
 | `POST /media-library/files/move` | missing `file` or `folder`, or not a positive integer | 422 |
 | `POST /media-library/files/delete` | missing `file`, or not a positive integer | 422 |
+| `GET /media-library/files/info` | missing `file` query parameter, or not a positive integer | 404 |
 | `POST /media-library/upload` | missing or failed `file` (also for a non-multipart body), `folder` not a positive integer | 422 |
 
 Those errors use Symfony's error format. With `Accept: application/json` it's a problem

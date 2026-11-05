@@ -6,10 +6,11 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 import { Controller } from '@hotwired/stimulus';
 import { LANG } from './lang.js';
 import { byName, escapeHtml, EVENT_PREFIX, extension, iconFor, isImage, ROOT } from './utils.js';
-import { fetchJson, postJson, uploadFile } from './api.js';
+import { fetchFileInfo, fetchJson, postJson, uploadFile } from './api.js';
 import { labelForm, openDialog, readTitle } from './dialog.js';
 import { closeContextMenu, openContextMenu } from './context-menu.js';
 import { layoutTemplate, previewTemplate } from './templates.js';
+import { infoTemplate } from './info.js';
 import { createUploadZone } from './upload.js';
 import { CROP_TYPES, cropTemplate, cropToBlob, isCroppable, mountCropper } from './crop.js';
 
@@ -466,6 +467,9 @@ export default class _class extends Controller {
     } else if (fileElement) {
       var file = this.getFile(Number(fileElement.dataset.fileId));
       items = [{
+        label: LANG.info,
+        action: () => this.fileInfo(file)
+      }, {
         label: LANG.rename,
         action: () => this.renameFile(file)
       }, ...(isCroppable(file) ? [{
@@ -706,10 +710,56 @@ export default class _class extends Controller {
     }]);
   }
 
+  // Show the file's details: what the popup knows right away, then what a file-info listener
+  // (respondWith a promise of a partial MediaFileInfo) or the file_info endpoint answers.
+  fileInfo(file) {
+    var _this9 = this;
+    return _asyncToGenerator(function* () {
+      var path = [];
+      for (var folder = _this9.getFileFolder(file.id); folder; folder = _this9.getFolder(folder.parent)) {
+        path.unshift(folder.name);
+      }
+      var local = _extends({}, file, {
+        path
+      });
+      _this9.dialog(LANG.titleFileInfo, infoTemplate(local, true), [{
+        label: LANG.close,
+        className: 'ml-btn-primary'
+      }], 'ml-dialog--info');
+      var dialog = _this9.find('.ml-dialog');
+      // Replaced when another dialog opens in the meantime: then the answer is dropped.
+      var body = dialog.querySelector('.ml-dialog-body');
+      var info;
+      var failed = false;
+      try {
+        var answered = false;
+        info = yield _this9.emit('file-info', {
+          file
+        }, () => answered = true);
+        if (!answered && _this9.fileInfoUrlValue !== '') {
+          info = yield fetchFileInfo(_this9.fileInfoUrlValue, file.id);
+        }
+      } catch (error) {
+        console.error(error);
+        failed = true;
+      }
+      if (!body.isConnected || !dialog.open) {
+        return;
+      }
+      // The popup's name, folder and URL stay authoritative: they include unsaved local changes.
+      body.innerHTML = infoTemplate(_extends({}, info, local), false);
+      if (failed) {
+        var error = dialog.querySelector('.ml-dialog-error');
+        error.textContent = LANG.errorFileInfo;
+        error.hidden = false;
+      }
+    })();
+  }
+
   // Crop an image into a new file of the same folder: the original is kept. The canvas does
   // the cropping, then the result goes to the upload endpoint, unless a crop-file listener answers.
   cropFile(file) {
-    var _this9 = this;
+    var _this10 = this;
     var cropper;
     this.dialog(LANG.titleCropFile, cropTemplate(file.url), [{
       label: LANG.cancel
@@ -723,7 +773,7 @@ export default class _class extends Controller {
           if (!rect) {
             throw new Error(LANG.errorCropLoad);
           }
-          var folder = _this9.getFileFolder(file.id);
+          var folder = _this10.getFileFolder(file.id);
           var ext = extension(file.url);
           var name = LANG.croppedName(file.name.replace(/\.[^.]+$/, ''), ext);
           var blob;
@@ -733,7 +783,7 @@ export default class _class extends Controller {
             console.error(error);
             throw new Error(LANG.errorCropFile);
           }
-          var cropped = yield _this9.saveCrop({
+          var cropped = yield _this10.saveCrop({
             file,
             folder,
             crop: rect,
@@ -741,12 +791,12 @@ export default class _class extends Controller {
             name
           });
           folder.files = [...((_folder$files4 = folder.files) != null ? _folder$files4 : []), cropped];
-          if (!_this9.multipleValue) {
-            _this9.selectedFileIds.clear();
+          if (!_this10.multipleValue) {
+            _this10.selectedFileIds.clear();
           }
-          _this9.selectedFileIds.add(cropped.id);
-          _this9.renderContent();
-          _this9.alert(LANG.successCropFile);
+          _this10.selectedFileIds.add(cropped.id);
+          _this10.renderContent();
+          _this10.alert(LANG.successCropFile);
         });
         function action() {
           return _action6.apply(this, arguments);
@@ -760,10 +810,10 @@ export default class _class extends Controller {
   // Store a cropped image as a new file of `detail.folder`: a crop-file listener can answer
   // with a promise of {id, name?, url}, otherwise it's POSTed to upload_url.
   saveCrop(detail) {
-    var _this10 = this;
+    var _this11 = this;
     return _asyncToGenerator(function* () {
       var answered = false;
-      var response = yield _this10.emit('crop-file', detail, () => answered = true);
+      var response = yield _this11.emit('crop-file', detail, () => answered = true);
       if (answered) {
         var _response$name;
         if (typeof (response == null ? void 0 : response.id) !== 'number' || typeof response.url !== 'string') {
@@ -777,10 +827,10 @@ export default class _class extends Controller {
         };
       }
       try {
-        if (_this10.uploadUrlValue === '') {
+        if (_this11.uploadUrlValue === '') {
           throw new Error('No upload_url and no crop-file listener');
         }
-        return yield uploadFile(_this10.uploadUrlValue, detail.blob, detail.name, detail.folder.id);
+        return yield uploadFile(_this11.uploadUrlValue, detail.blob, detail.name, detail.folder.id);
       } catch (error) {
         console.error(error);
         throw new Error(LANG.errorCropFile);
@@ -797,38 +847,38 @@ export default class _class extends Controller {
   // ---- Upload (Dropzone) ----------------------------------------------
 
   initDropzone(session) {
-    var _this11 = this;
+    var _this12 = this;
     return _asyncToGenerator(function* () {
       var _yield$createUploadZo;
-      if (_this11.uploadUrlValue === '' || _this11.dropzone) {
+      if (_this12.uploadUrlValue === '' || _this12.dropzone) {
         return;
       }
-      _this11.dropzone = (_yield$createUploadZo = yield createUploadZone({
-        url: _this11.uploadUrlValue,
-        element: _this11.find('.ml-content'),
-        previews: _this11.find('.ml-infos'),
-        currentFolder: () => _this11.activeFolderId,
-        isCurrent: () => session === _this11.session && !_this11.dropzone,
+      _this12.dropzone = (_yield$createUploadZo = yield createUploadZone({
+        url: _this12.uploadUrlValue,
+        element: _this12.find('.ml-content'),
+        previews: _this12.find('.ml-infos'),
+        currentFolder: () => _this12.activeFolderId,
+        isCurrent: () => session === _this12.session && !_this12.dropzone,
         onSending: (file, folder, xhr, formData) => {
-          var _this11$getFolder;
-          return _this11.dispatchEvent('upload-sending', {
+          var _this12$getFolder;
+          return _this12.dispatchEvent('upload-sending', {
             file,
-            folder: (_this11$getFolder = _this11.getFolder(folder)) != null ? _this11$getFolder : null,
+            folder: (_this12$getFolder = _this12.getFolder(folder)) != null ? _this12$getFolder : null,
             xhr,
             formData
           });
         },
         onUploaded: (file, parent) => {
-          var folder = _this11.getFolder(parent);
+          var folder = _this12.getFolder(parent);
           if (folder) {
             var _folder$files5;
             folder.files = [...((_folder$files5 = folder.files) != null ? _folder$files5 : []), file];
-            _this11.renderContent();
+            _this12.renderContent();
           }
-          _this11.alert(LANG.successUploadFile);
+          _this12.alert(LANG.successUploadFile);
         },
-        onError: message => _this11.alert(message, 'danger')
-      })) != null ? _yield$createUploadZo : _this11.dropzone;
+        onError: message => _this12.alert(message, 'danger')
+      })) != null ? _yield$createUploadZo : _this12.dropzone;
     })();
   }
   destroyDropzone() {
@@ -857,10 +907,10 @@ export default class _class extends Controller {
   // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
   // onRespond is called when a listener answers, to tell it apart from a promise resolving to undefined.
   emit(name, detail, onRespond) {
-    var _this12 = this;
+    var _this13 = this;
     return _asyncToGenerator(function* () {
       var pending;
-      _this12.dispatchEvent(name, _extends({}, detail, {
+      _this13.dispatchEvent(name, _extends({}, detail, {
         respondWith: promise => {
           pending = promise;
           onRespond == null || onRespond();
@@ -909,6 +959,10 @@ _class.values = {
     default: ''
   },
   deleteFileUrl: {
+    type: String,
+    default: ''
+  },
+  fileInfoUrl: {
     type: String,
     default: ''
   },
