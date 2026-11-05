@@ -8,10 +8,11 @@ import {fetchJson, postJson, uploadFile} from './api.js'
 import {labelForm, openDialog, readTitle} from './dialog.js'
 import {closeContextMenu, openContextMenu} from './context-menu.js'
 import {layoutTemplate, previewTemplate} from './templates.js'
+import {createUploadZone, type UploadZone} from './upload.js'
 import {CROP_TYPES, cropTemplate, cropToBlob, isCroppable, mountCropper, type Cropper} from './crop.js'
 
 // The popup's Stimulus controller: state, rendering and actions. Markup and the
-// self-contained pieces (dialogs, context menu, cropper, HTTP calls) live in the sibling modules.
+// self-contained pieces (dialogs, context menu, cropper, upload, HTTP calls) live in the sibling modules.
 export default class extends Controller {
     static targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled', 'count']
     static values = {
@@ -52,7 +53,7 @@ export default class extends Controller {
     private sortAsc = true
     private rendered = false
     private abort: AbortController | null = null
-    private dropzone: any = null
+    private dropzone: UploadZone | null = null
     // Bumped by every open()/close(): an open() whose await resumes after a newer
     // open() or a close() must stop, or it would re-render or attach a second Dropzone.
     private session = 0
@@ -730,54 +731,24 @@ export default class extends Controller {
         if (this.uploadUrlValue === '' || this.dropzone) {
             return
         }
-
-        const {default: Dropzone} = await import('dropzone')
-        if (session !== this.session || this.dropzone) {
-            return
-        }
-
-        let targetFolderId = this.activeFolderId
-        const dropzone = new Dropzone(this.find('.ml-content'), {
+        this.dropzone = await createUploadZone({
             url: this.uploadUrlValue,
-            previewsContainer: this.find('.ml-infos'),
-            clickable: false,
-            // Files belong to a folder: the root has none to store them in.
-            accept: (file: File, done: (error?: string) => void) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
-            resizeWidth: 1920,
-            previewTemplate: `<div class="dz-preview dz-file-preview">
-                <div class="dz-details"><img data-dz-thumbnail alt=""><span class="dz-filename" data-dz-name></span></div>
-                <div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
-            </div>`,
-        })
-
-        dropzone.on('drop', (event: DragEvent) => {
-            const folder = (event.target as HTMLElement).closest<HTMLElement>('.ml-folder')
-            targetFolderId = folder ? Number(folder.dataset.folderId) : this.activeFolderId
-        })
-        dropzone.on('sending', (file: File, xhr: XMLHttpRequest, formData: FormData) => {
-            formData.append('folder', String(targetFolderId))
-            this.dispatchEvent('upload-sending', {file, folder: this.getFolder(targetFolderId) ?? null, xhr, formData})
-        })
-        dropzone.on('success', (file: File, json: any) => {
-            if (json?.result !== 'success') {
-                console.error(json)
-                this.alert(LANG.errorUpload, 'danger')
-                return
-            }
-            const folder = this.getFolder(json.file.parent)
-            if (folder) {
-                folder.files = [...(folder.files ?? []), {id: json.file.id, name: json.file.name, url: json.file.url}]
-                this.renderContent()
-            }
-            this.alert(LANG.successUploadFile)
-        })
-        dropzone.on('error', (file: File, message: unknown) => {
-            console.error(message)
-            this.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger')
-        })
-        dropzone.on('complete', (file: any) => file.previewElement?.remove())
-
-        this.dropzone = dropzone
+            element: this.find('.ml-content'),
+            previews: this.find('.ml-infos'),
+            currentFolder: () => this.activeFolderId,
+            isCurrent: () => session === this.session && !this.dropzone,
+            onSending: (file, folder, xhr, formData) =>
+                this.dispatchEvent('upload-sending', {file, folder: this.getFolder(folder) ?? null, xhr, formData}),
+            onUploaded: (file, parent) => {
+                const folder = this.getFolder(parent)
+                if (folder) {
+                    folder.files = [...(folder.files ?? []), file]
+                    this.renderContent()
+                }
+                this.alert(LANG.successUploadFile)
+            },
+            onError: message => this.alert(message, 'danger'),
+        }) ?? this.dropzone
     }
 
     private destroyDropzone() {

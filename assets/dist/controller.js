@@ -10,10 +10,11 @@ import { fetchJson, postJson, uploadFile } from './api.js';
 import { labelForm, openDialog, readTitle } from './dialog.js';
 import { closeContextMenu, openContextMenu } from './context-menu.js';
 import { layoutTemplate, previewTemplate } from './templates.js';
+import { createUploadZone } from './upload.js';
 import { CROP_TYPES, cropTemplate, cropToBlob, isCroppable, mountCropper } from './crop.js';
 
 // The popup's Stimulus controller: state, rendering and actions. Markup and the
-// self-contained pieces (dialogs, context menu, cropper, HTTP calls) live in the sibling modules.
+// self-contained pieces (dialogs, context menu, cropper, upload, HTTP calls) live in the sibling modules.
 export default class _class extends Controller {
   constructor() {
     super(...arguments);
@@ -798,66 +799,36 @@ export default class _class extends Controller {
   initDropzone(session) {
     var _this11 = this;
     return _asyncToGenerator(function* () {
+      var _yield$createUploadZo;
       if (_this11.uploadUrlValue === '' || _this11.dropzone) {
         return;
       }
-      var {
-        default: Dropzone
-      } = yield import('dropzone');
-      if (session !== _this11.session || _this11.dropzone) {
-        return;
-      }
-      var targetFolderId = _this11.activeFolderId;
-      var dropzone = new Dropzone(_this11.find('.ml-content'), {
+      _this11.dropzone = (_yield$createUploadZo = yield createUploadZone({
         url: _this11.uploadUrlValue,
-        previewsContainer: _this11.find('.ml-infos'),
-        clickable: false,
-        // Files belong to a folder: the root has none to store them in.
-        accept: (file, done) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
-        resizeWidth: 1920,
-        previewTemplate: "<div class=\"dz-preview dz-file-preview\">\n                <div class=\"dz-details\"><img data-dz-thumbnail alt=\"\"><span class=\"dz-filename\" data-dz-name></span></div>\n                <div class=\"dz-progress\"><span class=\"dz-upload\" data-dz-uploadprogress></span></div>\n            </div>"
-      });
-      dropzone.on('drop', event => {
-        var folder = event.target.closest('.ml-folder');
-        targetFolderId = folder ? Number(folder.dataset.folderId) : _this11.activeFolderId;
-      });
-      dropzone.on('sending', (file, xhr, formData) => {
-        var _this11$getFolder;
-        formData.append('folder', String(targetFolderId));
-        _this11.dispatchEvent('upload-sending', {
-          file,
-          folder: (_this11$getFolder = _this11.getFolder(targetFolderId)) != null ? _this11$getFolder : null,
-          xhr,
-          formData
-        });
-      });
-      dropzone.on('success', (file, json) => {
-        if ((json == null ? void 0 : json.result) !== 'success') {
-          console.error(json);
-          _this11.alert(LANG.errorUpload, 'danger');
-          return;
-        }
-        var folder = _this11.getFolder(json.file.parent);
-        if (folder) {
-          var _folder$files5;
-          folder.files = [...((_folder$files5 = folder.files) != null ? _folder$files5 : []), {
-            id: json.file.id,
-            name: json.file.name,
-            url: json.file.url
-          }];
-          _this11.renderContent();
-        }
-        _this11.alert(LANG.successUploadFile);
-      });
-      dropzone.on('error', (file, message) => {
-        console.error(message);
-        _this11.alert(message === LANG.errorUploadRoot ? LANG.errorUploadRoot : LANG.errorUpload, 'danger');
-      });
-      dropzone.on('complete', file => {
-        var _file$previewElement;
-        return (_file$previewElement = file.previewElement) == null ? void 0 : _file$previewElement.remove();
-      });
-      _this11.dropzone = dropzone;
+        element: _this11.find('.ml-content'),
+        previews: _this11.find('.ml-infos'),
+        currentFolder: () => _this11.activeFolderId,
+        isCurrent: () => session === _this11.session && !_this11.dropzone,
+        onSending: (file, folder, xhr, formData) => {
+          var _this11$getFolder;
+          return _this11.dispatchEvent('upload-sending', {
+            file,
+            folder: (_this11$getFolder = _this11.getFolder(folder)) != null ? _this11$getFolder : null,
+            xhr,
+            formData
+          });
+        },
+        onUploaded: (file, parent) => {
+          var folder = _this11.getFolder(parent);
+          if (folder) {
+            var _folder$files5;
+            folder.files = [...((_folder$files5 = folder.files) != null ? _folder$files5 : []), file];
+            _this11.renderContent();
+          }
+          _this11.alert(LANG.successUploadFile);
+        },
+        onError: message => _this11.alert(message, 'danger')
+      })) != null ? _yield$createUploadZo : _this11.dropzone;
     })();
   }
   destroyDropzone() {

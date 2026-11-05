@@ -14,7 +14,7 @@ There are no PHP tests (`autoload-dev` points at a nonexistent `tests/`), no lin
 
 ## Front-end build
 
-`assets/` is an npm package (`@golpilolz/medialibrary`). The TypeScript Stimulus controller `assets/src/controller.ts` (state, rendering, actions, Dropzone) imports sibling ES modules: `types`, `lang` (`LANG`), `utils` (constants, pure helpers), `api` (fetch helpers), `dialog`, `context-menu`, `templates` (popup layout, preview tiles) and `crop` (crop dialog). Each file is compiled with Babel (no bundler, no type-checking) to `dist/<name>.js`, and **`assets/dist/` is committed**: it is what AssetMapper serves (it follows the relative imports), so rebuild and commit `dist/` after editing `src/`. Relative imports must keep their `.js` extension (`from './utils.js'`): the browser loads them as is.
+`assets/` is an npm package (`@golpilolz/medialibrary`). The TypeScript Stimulus controller `assets/src/controller.ts` (state, rendering, actions) imports sibling ES modules: `types`, `lang` (`LANG`), `utils` (constants, pure helpers), `api` (fetch helpers), `dialog`, `context-menu`, `templates` (popup layout, preview tiles), `crop` (crop dialog) and `upload` (Dropzone). Each file is compiled with Babel (no bundler, no type-checking) to `dist/<name>.js`, and **`assets/dist/` is committed**: it is what AssetMapper serves (it follows the relative imports), so rebuild and commit `dist/` after editing `src/`. Relative imports must keep their `.js` extension (`from './utils.js'`): the browser loads them as is.
 
 ```bash
 cd assets
