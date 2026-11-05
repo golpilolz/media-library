@@ -1,3 +1,4 @@
+function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 // Calls to the bundle's endpoints. They answer {"result": "success", …}; anything else
@@ -17,6 +18,12 @@ var send = /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }();
+
+// Header carrying the widget's CSRF token on write requests (empty token: CSRF protection is off).
+export var CSRF_HEADER = 'X-CSRF-Token';
+var csrfHeaders = csrfToken => csrfToken === '' ? {} : {
+  [CSRF_HEADER]: csrfToken
+};
 
 // A file of an endpoint response, without the extra keys (e.g. upload's `parent`).
 export var toMediaFile = _ref2 => {
@@ -53,31 +60,39 @@ export var fetchJson = /*#__PURE__*/function () {
     return _ref3.apply(this, arguments);
   };
 }();
-export var postJson = (url, body) => send(url, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  },
-  body: JSON.stringify(body)
-});
+export var postJson = function postJson(url, body, csrfToken) {
+  if (csrfToken === void 0) {
+    csrfToken = '';
+  }
+  return send(url, {
+    method: 'POST',
+    headers: _extends({
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    }, csrfHeaders(csrfToken)),
+    body: JSON.stringify(body)
+  });
+};
 
 // Same request as a Dropzone upload: multipart fields `file` and `folder`.
 export var uploadFile = /*#__PURE__*/function () {
-  var _ref4 = _asyncToGenerator(function* (url, file, name, folder) {
+  var _ref4 = _asyncToGenerator(function* (url, file, name, folder, csrfToken) {
+    if (csrfToken === void 0) {
+      csrfToken = '';
+    }
     var formData = new FormData();
     formData.append('file', file, name);
     formData.append('folder', String(folder));
     var json = yield send(url, {
       method: 'POST',
-      headers: {
+      headers: _extends({
         Accept: 'application/json'
-      },
+      }, csrfHeaders(csrfToken)),
       body: formData
     });
     return toMediaFile(json.file);
   });
-  return function uploadFile(_x4, _x5, _x6, _x7) {
+  return function uploadFile(_x4, _x5, _x6, _x7, _x8) {
     return _ref4.apply(this, arguments);
   };
 }();
@@ -94,7 +109,7 @@ export var fetchFileInfo = /*#__PURE__*/function () {
     });
     return json.file;
   });
-  return function fetchFileInfo(_x8, _x9) {
+  return function fetchFileInfo(_x9, _x10) {
     return _ref5.apply(this, arguments);
   };
 }();

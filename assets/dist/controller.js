@@ -610,7 +610,7 @@ export default class _class extends Controller {
       var json = yield postJson(_this5.folderUrlValue, {
         name,
         parent
-      });
+      }, _this5.csrfTokenValue);
       if (typeof json.id !== 'number') {
         throw new Error('The folder endpoint answered without an id');
       }
@@ -673,7 +673,7 @@ export default class _class extends Controller {
         return;
       }
       try {
-        yield postJson(url, body);
+        yield postJson(url, body, _this7.csrfTokenValue);
       } catch (error) {
         console.error(error);
         throw new Error(errorMessage);
@@ -838,7 +838,7 @@ export default class _class extends Controller {
         if (_this11.uploadUrlValue === '') {
           throw new Error('No upload_url and no crop-file listener');
         }
-        return yield uploadFile(_this11.uploadUrlValue, detail.blob, detail.name, detail.folder.id);
+        return yield uploadFile(_this11.uploadUrlValue, detail.blob, detail.name, detail.folder.id, _this11.csrfTokenValue);
       } catch (error) {
         console.error(error);
         throw new Error(LANG.errorCropFile);
@@ -863,6 +863,7 @@ export default class _class extends Controller {
       }
       _this12.dropzone = (_yield$createUploadZo = yield createUploadZone({
         url: _this12.uploadUrlValue,
+        csrfToken: _this12.csrfTokenValue,
         element: _this12.find('.ml-content'),
         previews: _this12.find('.ml-infos'),
         currentFolder: () => _this12.activeFolderId,
@@ -971,6 +972,10 @@ _class.values = {
     default: ''
   },
   fileInfoUrl: {
+    type: String,
+    default: ''
+  },
+  csrfToken: {
     type: String,
     default: ''
   },

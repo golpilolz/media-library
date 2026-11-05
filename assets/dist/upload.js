@@ -4,7 +4,7 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 
 import { LANG } from './lang.js';
 import { ROOT } from './utils.js';
-import { toMediaFile } from './api.js';
+import { CSRF_HEADER, toMediaFile } from './api.js';
 export var createUploadZone = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* (options) {
     var {
@@ -16,6 +16,9 @@ export var createUploadZone = /*#__PURE__*/function () {
     var targetFolderId = options.currentFolder();
     var dropzone = new Dropzone(options.element, {
       url: options.url,
+      headers: options.csrfToken === '' ? undefined : {
+        [CSRF_HEADER]: options.csrfToken
+      },
       previewsContainer: options.previews,
       clickable: false,
       // Files belong to a folder: the root has none to store them in.

@@ -49,6 +49,9 @@ class GolpilolzMediaLibraryExtension extends Extension implements PrependExtensi
         foreach ($config as $key => $value) {
             $container->setParameter('golpilolz_medialibrary.' . $key, $value);
         }
+        foreach ($config['security'] as $key => $value) {
+            $container->setParameter('golpilolz_medialibrary.security.' . $key, $value);
+        }
     }
 
     private function isAssetMapperAvailable(ContainerBuilder $container): bool

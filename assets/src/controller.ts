@@ -25,6 +25,7 @@ export default class extends Controller {
         moveFileUrl: {type: String, default: ''},
         deleteFileUrl: {type: String, default: ''},
         fileInfoUrl: {type: String, default: ''},
+        csrfToken: {type: String, default: ''},
         multiple: {type: Boolean, default: false},
     }
 
@@ -46,6 +47,7 @@ export default class extends Controller {
     declare readonly moveFileUrlValue: string
     declare readonly deleteFileUrlValue: string
     declare readonly fileInfoUrlValue: string
+    declare readonly csrfTokenValue: string
     declare readonly multipleValue: boolean
 
     private folders: MediaFolder[] = []
@@ -590,7 +592,7 @@ export default class extends Controller {
         if (this.folderUrlValue === '') {
             return undefined
         }
-        const json = await postJson(this.folderUrlValue, {name, parent})
+        const json = await postJson(this.folderUrlValue, {name, parent}, this.csrfTokenValue)
         if (typeof json.id !== 'number') {
             throw new Error('The folder endpoint answered without an id')
         }
@@ -641,7 +643,7 @@ export default class extends Controller {
             return
         }
         try {
-            await postJson(url, body)
+            await postJson(url, body, this.csrfTokenValue)
         } catch (error) {
             console.error(error)
             throw new Error(errorMessage)
@@ -757,7 +759,7 @@ export default class extends Controller {
             if (this.uploadUrlValue === '') {
                 throw new Error('No upload_url and no crop-file listener')
             }
-            return await uploadFile(this.uploadUrlValue, detail.blob, detail.name, detail.folder.id)
+            return await uploadFile(this.uploadUrlValue, detail.blob, detail.name, detail.folder.id, this.csrfTokenValue)
         } catch (error) {
             console.error(error)
             throw new Error(LANG.errorCropFile)
@@ -776,6 +778,7 @@ export default class extends Controller {
         }
         this.dropzone = await createUploadZone({
             url: this.uploadUrlValue,
+            csrfToken: this.csrfTokenValue,
             element: this.find('.ml-content'),
             previews: this.find('.ml-infos'),
             currentFolder: () => this.activeFolderId,

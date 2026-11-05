@@ -13,3 +13,8 @@ golpilolz_media_library:
     # allowed_extensions: [jpg, jpeg, png, gif, webp, avif, pdf]
     # Widget theme: default, sonata (Sonata Admin), easyadmin (EasyAdmin) or a custom name
     # theme: default
+    # Access to the /media-library endpoints (null = public). Writes also need a CSRF token, sent by the widget.
+    # security:
+    #     view_role: ROLE_ADMIN
+    #     edit_role: ROLE_ADMIN
+    #     csrf_protection: true

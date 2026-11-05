@@ -43,8 +43,47 @@ Generate the tables with `make:migration` and `doctrine:migrations:migrate`.
 | `upload_dir` | `%kernel.project_dir%/public/uploads/media-library` | Where uploaded files are stored |
 | `upload_path` | `uploads/media-library` | Public path of `upload_dir`, relative to the web root |
 | `allowed_extensions` | images (no SVG), pdf, office, txt/csv, zip, mp3/mp4/webm | Extensions the upload endpoint accepts |
+| `security.view_role` | `ROLE_ADMIN` | Attribute required by the read endpoints, `null` = public (see [Security](#security)) |
+| `security.edit_role` | `ROLE_ADMIN` | Attribute required by the write endpoints, `null` = public |
+| `security.csrf_protection` | `true` | Require a CSRF token on the write endpoints |
 
-Each key is exposed as a `golpilolz_medialibrary.<key>` container parameter.
+Each key is exposed as a `golpilolz_medialibrary.<key>` container parameter (and
+`golpilolz_medialibrary.security.<key>` for the `security` keys).
+
+## Security
+
+The bundle's endpoints (`/media-library/*`) are guarded by `Security\EndpointAccessSubscriber`,
+which runs before each action of `MediaLibraryController`, whatever prefix the routes are
+imported under:
+
+- the read endpoints (`GET /media-library/folders`, `GET /media-library/files/info`) need
+  `security.view_role`; the write endpoints (upload, add/rename folder, rename/move/delete file)
+  need `security.edit_role`. Both default to `ROLE_ADMIN` and accept anything `is_granted()`
+  does (a role, `IS_AUTHENTICATED`, a voter attribute). `null` skips the check;
+- with `security.csrf_protection` (default), the write endpoints need the header
+  `X-CSRF-Token` holding a token for the id `golpilolz_media_library`. The form widget renders it
+  (Stimulus value `csrf-token`) and the popup sends it on every write, Dropzone uploads
+  included.
+
+The bundle requires `symfony/security-bundle` and `symfony/security-csrf`. The endpoints must sit
+behind a firewall (the default `main` one with a `^/` pattern does): a denied anonymous user gets
+the firewall's entry point (401 or a login redirect), a logged-in user without the role a 403.
+An invalid or missing CSRF token gets a 403. The token is stored in the session, unless you list
+`golpilolz_media_library` in `framework.csrf_protection.stateless_token_ids`, in which case
+Symfony checks the request's `Origin` instead.
+
+```yaml
+# config/packages/golpilolz_media_library.yaml
+golpilolz_media_library:
+    security:
+        view_role: ROLE_EDITOR      # who can browse the library
+        edit_role: ROLE_ADMIN       # who can upload, rename, move and delete
+        # csrf_protection: false    # e.g. when every write goes through your own listeners
+```
+
+Event listeners that persist changes through your own endpoints (see [Events](#events)) don't
+go through this subscriber: protect those endpoints yourself. To send the bundle's token, read
+it from the widget's `data-golpilolz--media-library--media-library-csrf-token-value` attribute.
 
 ## Usage in a form
 
@@ -96,8 +135,8 @@ tile to upload them there). Files can't be dropped at the root, which holds no f
 Each dropped file is POSTed to `upload_url` (field `file`, plus `folder`: the target folder
 id). The bundle's endpoint `golpilolz_media-library_upload` (`POST /media-library/upload`)
 stores it in `upload_dir` (sanitized name, suffixed on collision), rejects extensions outside
-`allowed_extensions`, and creates the `File` entity. Like the folder endpoint, it has no access control: protect
-`^/media-library` in `security.yaml` like the rest of your back office. A custom endpoint
+`allowed_extensions`, and creates the `File` entity. Like every bundle endpoint, it requires
+`security.edit_role` and a CSRF token (see [Security](#security)). A custom endpoint
 must respond with:
 
 ```json
@@ -189,6 +228,9 @@ Symfony before the controller runs:
 
 | Endpoint | Request | Status |
 |---|---|---|
+| all | anonymous user when the role isn't `null` | 401 (or the firewall's login redirect) |
+| all | user without `security.view_role` (`GET`) or `security.edit_role` (`POST`) | 403 |
+| all `POST` | missing or invalid `X-CSRF-Token` header (with `security.csrf_protection`) | 403 |
 | all | body that can't be parsed, or upload without a `folder` field | 400 |
 | all `POST` but `upload` | `Content-Type` other than JSON | 415 |
 | `POST /media-library/folders` | blank `name` (after trimming), `name` over 255 characters, non-integer `parent` | 422 |

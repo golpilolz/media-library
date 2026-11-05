@@ -12,6 +12,11 @@ const send = async (url: string, init: RequestInit): Promise<any> => {
     return json
 }
 
+// Header carrying the widget's CSRF token on write requests (empty token: CSRF protection is off).
+export const CSRF_HEADER = 'X-CSRF-Token'
+
+const csrfHeaders = (csrfToken: string): Record<string, string> => csrfToken === '' ? {} : {[CSRF_HEADER]: csrfToken}
+
 // A file of an endpoint response, without the extra keys (e.g. upload's `parent`).
 export const toMediaFile = ({id, name, url, size = null, width = null, height = null}: any): MediaFile =>
     ({id, name, url, size, width, height})
@@ -24,18 +29,18 @@ export const fetchJson = async <T>(url: string): Promise<T> => {
     return response.json()
 }
 
-export const postJson = (url: string, body: object): Promise<any> => send(url, {
+export const postJson = (url: string, body: object, csrfToken = ''): Promise<any> => send(url, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+    headers: {'Content-Type': 'application/json', Accept: 'application/json', ...csrfHeaders(csrfToken)},
     body: JSON.stringify(body),
 })
 
 // Same request as a Dropzone upload: multipart fields `file` and `folder`.
-export const uploadFile = async (url: string, file: Blob, name: string, folder: number): Promise<MediaFile> => {
+export const uploadFile = async (url: string, file: Blob, name: string, folder: number, csrfToken = ''): Promise<MediaFile> => {
     const formData = new FormData()
     formData.append('file', file, name)
     formData.append('folder', String(folder))
-    const json = await send(url, {method: 'POST', headers: {Accept: 'application/json'}, body: formData})
+    const json = await send(url, {method: 'POST', headers: {Accept: 'application/json', ...csrfHeaders(csrfToken)}, body: formData})
     return toMediaFile(json.file)
 }
 
