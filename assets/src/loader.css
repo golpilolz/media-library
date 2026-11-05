@@ -9,9 +9,9 @@
 }
 
 .golpilolz-media-library .ml-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--ml-separator);
+    width: 2rem;
+    height: 2rem;
+    border: .1875rem solid var(--ml-separator);
     border-top-color: var(--ml-accent);
     border-radius: 50%;
     animation: ml-rotation .8s linear infinite;
