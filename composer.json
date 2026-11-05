@@ -23,9 +23,11 @@
     }
   },
   "require": {
-    "symfony/asset-mapper": "^7.4 | ^8",
     "doctrine/doctrine-bundle": "^2.18 | ^3.2",
     "doctrine/orm": "^3.6",
+    "symfony/asset-mapper": "^7.4 | ^8",
+    "symfony/security-bundle": "^7.4 | ^8",
+    "symfony/security-csrf": "^7.4 | ^8",
     "symfony/serializer": "^7.4 | ^8",
     "symfony/validator": "^7.4 | ^8",
     "twig/extra-bundle": "^2.12|^3.0",

@@ -3,7 +3,7 @@
 import type {MediaFile} from './types.js'
 import {LANG} from './lang.js'
 import {ROOT} from './utils.js'
-import {toMediaFile} from './api.js'
+import {CSRF_HEADER, toMediaFile} from './api.js'
 
 export interface UploadZone {
     destroy(): void
@@ -11,6 +11,8 @@ export interface UploadZone {
 
 export interface UploadOptions {
     url: string
+    // Sent as the X-CSRF-Token header; empty when CSRF protection is off.
+    csrfToken: string
     // The grid that receives drops, and where the progress previews go.
     element: HTMLElement
     previews: HTMLElement
@@ -32,6 +34,7 @@ export const createUploadZone = async (options: UploadOptions): Promise<UploadZo
     let targetFolderId = options.currentFolder()
     const dropzone = new Dropzone(options.element, {
         url: options.url,
+        headers: options.csrfToken === '' ? undefined : {[CSRF_HEADER]: options.csrfToken},
         previewsContainer: options.previews,
         clickable: false,
         // Files belong to a folder: the root has none to store them in.

@@ -13,6 +13,7 @@
          data-{{ controller }}-move-file-url-value="{{ move_file_url|default('') }}"
          data-{{ controller }}-delete-file-url-value="{{ delete_file_url|default('') }}"
          data-{{ controller }}-file-info-url-value="{{ file_info_url|default('') }}"
+         data-{{ controller }}-csrf-token-value="{{ media_csrf_token|default('') }}"
          data-{{ controller }}-multiple-value="{{ multiple ? 'true' : 'false' }}">
         {%- set filled = ids|filter(id => id is not empty)|length > 0 -%}
         <button type="button" class="ml-field-empty"{{ filled ? ' hidden' }}

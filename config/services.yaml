@@ -15,3 +15,4 @@ services:
     Golpilolz\MediaLibrary\Form\Type\GolpilolzMediaLibrarySingleType:
         arguments:
             $defaultTheme: '%golpilolz_medialibrary.theme%'
+            $csrfProtection: '%golpilolz_medialibrary.security.csrf_protection%'

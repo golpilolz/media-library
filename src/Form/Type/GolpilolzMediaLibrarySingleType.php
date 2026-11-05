@@ -3,6 +3,7 @@
 namespace Golpilolz\MediaLibrary\Form\Type;
 
 use Golpilolz\MediaLibrary\Entity\File;
+use Golpilolz\MediaLibrary\Security\EndpointAccessSubscriber;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormView;
@@ -11,6 +12,7 @@ use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 class GolpilolzMediaLibrarySingleType extends AbstractType
 {
@@ -19,6 +21,8 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly string $defaultTheme = 'default',
+        private readonly bool $csrfProtection = true,
+        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
         $this->prefix = 'test';
     }
@@ -45,6 +49,10 @@ class GolpilolzMediaLibrarySingleType extends AbstractType
             'move_file_url' => $options['move_file_url'] ?? '',
             'delete_file_url' => $options['delete_file_url'] ?? '',
             'file_info_url' => $options['file_info_url'] ?? '',
+            // Sent as X-CSRF-Token by the popup's write requests (see EndpointAccessSubscriber).
+            'media_csrf_token' => $this->csrfProtection && $this->csrfTokenManager !== null
+                ? $this->csrfTokenManager->getToken(EndpointAccessSubscriber::CSRF_TOKEN_ID)->getValue()
+                : '',
             'theme' => $theme,
             'block_prefixes' => $prefixes,
         ]);
