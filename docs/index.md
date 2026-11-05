@@ -289,6 +289,7 @@ golpilolz_media_library:
 | `default` | any page | Neutral look, light and dark following the OS scheme |
 | `sonata` | Sonata Admin 4 (AdminLTE / Bootstrap 3) | AdminLTE colors, font and radii; always light, like AdminLTE |
 | `easyadmin` | EasyAdmin 4 | Reads EasyAdmin's CSS variables, so it follows its colors and its light/dark switch |
+| `sylius` | Sylius 2 admin (Tabler / Bootstrap 5) | Reads Tabler's CSS variables (Sylius green, Inter, radii), so it follows `data-bs-theme` light/dark |
 
 The built-in themes are included in `style.min.css`: nothing else to load. They also raise the
 popup above the admin header and modals.
@@ -341,6 +342,30 @@ sonata_admin:
 ```php
 // In an admin's configureFormFields()
 $form->add('file', GolpilolzMediaLibrarySingleType::class, ['theme' => 'sonata']);
+```
+
+### Sylius
+
+The Sylius 2 admin loads its own Webpack Encore entry, not the app's importmap. With AssetMapper,
+add the importmap to every admin page through a Twig hook:
+
+```yaml
+# config/packages/sylius_twig_hooks.yaml
+sylius_twig_hooks:
+    hooks:
+        'sylius_admin.base#javascripts':
+            media_library:
+                template: 'admin/media_library_importmap.html.twig'
+```
+
+```twig
+{# templates/admin/media_library_importmap.html.twig #}
+{{ importmap('app') }}
+```
+
+```php
+// In a Sylius resource form type, or a form type extension of one
+$builder->add('file', GolpilolzMediaLibrarySingleType::class, ['theme' => 'sylius']);
 ```
 
 ### Custom theme
