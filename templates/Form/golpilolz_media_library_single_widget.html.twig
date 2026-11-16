@@ -75,18 +75,17 @@
             </div>
         </div>
 
-        <div class="ml-popup" data-{{ controller }}-target="popup">
-            <div class="golpilolz-media-library ml-panel" role="dialog" aria-modal="true" aria-label="Médiathèque">
-                <button type="button" class="ml-close" aria-label="Fermer" title="Fermer"
-                        data-action="{{ controller }}#close">
-                    <span class="icon-cross" aria-hidden="true"></span>
-                </button>
-                <div class="ml-loader" data-{{ controller }}-target="loader" hidden>
-                    <span class="ml-spinner"></span>
-                </div>
-                <div class="ml-shell" data-{{ controller }}-target="content"></div>
+        {#- Native modal dialog (showModal()): top layer, inert page, focus trap, Escape. #}
+        <dialog class="golpilolz-media-library ml-panel" aria-label="Médiathèque" data-{{ controller }}-target="popup">
+            <button type="button" class="ml-close" aria-label="Fermer" title="Fermer"
+                    data-action="{{ controller }}#close">
+                <span class="icon-cross" aria-hidden="true"></span>
+            </button>
+            <div class="ml-loader" data-{{ controller }}-target="loader" hidden>
+                <span class="ml-spinner"></span>
             </div>
-        </div>
+            <div class="ml-shell" data-{{ controller }}-target="content"></div>
+        </dialog>
 
         {%- for id in ids %}
             <input type="hidden" {{ block('widget_attributes') }} value="{{ id }}"

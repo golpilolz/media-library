@@ -4,7 +4,8 @@ import type {MediaFile} from './types.js'
 import {LANG} from './lang.js'
 import {escapeHtml, iconFor, isImage} from './utils.js'
 
-export const layoutTemplate = (): string => {
+// `upload`: show the "Importer" button (an upload URL is set).
+export const layoutTemplate = (upload: boolean): string => {
     const searchIcon = '<svg class="ml-search-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
 
     return `
@@ -20,6 +21,9 @@ export const layoutTemplate = (): string => {
                 </div>
                 <button type="button" class="ml-icon-btn" data-ml-action="open-folder" title="${LANG.openFolder}" aria-label="${LANG.openFolder}"><span class="icon-folder-open"></span></button>
                 <button type="button" class="ml-icon-btn" data-ml-action="zoom" title="${LANG.zoom}" aria-label="${LANG.zoom}"><span class="icon-zoom-in"></span></button>
+                <button type="button" class="ml-icon-btn" data-ml-action="actions" title="${LANG.actions}" aria-label="${LANG.actions}" aria-haspopup="menu"><span class="icon-more"></span></button>
+                ${upload ? `<button type="button" class="ml-icon-btn" data-ml-action="upload" title="${LANG.upload}" aria-label="${LANG.upload}"><span class="icon-upload"></span></button>
+                <input type="file" class="ml-upload-input" multiple hidden tabindex="-1">` : ''}
                 <label class="ml-search-field">${searchIcon}
                     <input type="search" class="ml-search" placeholder="${LANG.search}" aria-label="${LANG.search}">
                 </label>

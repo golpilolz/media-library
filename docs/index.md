@@ -108,6 +108,11 @@ The widget renders a button opening the popup; folders and files are loaded from
 JSON route `golpilolz_media-library_folders` (`GET /media-library/folders`). Double-click a
 file (or, with `multiple`, select files and press ✓) to write its id to the hidden input.
 
+The popup is a native modal `<dialog>` (`showModal()`): it opens above the page whatever its
+z-index, the page behind is inert and doesn't scroll, and the focus comes back to the field
+when it closes. It works with the keyboard: Tab goes through the tree and the tiles, Space or
+Enter selects a file, Enter opens a folder, Escape closes the menu, then a dialog, then the popup.
+
 Each file tile shows its size and, for an image, its resolution ("1,5 Mo · 1920 × 1280"). The
 route sends them as `size` (bytes), `width` and `height` (pixels) on each file, read from the
 stored file when its URL is under `upload_path` (`null` otherwise, and `width`/`height` are
@@ -117,8 +122,11 @@ With `multiple`, the widget shows the selected files as tiles: × removes one, "
 the popup with the current selection preselected, "Tout retirer" clears the field. An empty
 multiple field submits nothing (its hidden input is disabled), so the collection is emptied.
 
-Right-click in the file grid for: show the informations of / rename / crop / move / delete a file, rename a folder, create a
-folder. The popup has no jQuery and no CSS framework dependency (native `<dialog>`).
+Right-click in the file grid (or press the ContextMenu key / Shift+F10 on a tile, or use the "…"
+"Actions" button of the toolbar, which works on touch screens) for: show the informations of /
+rename / crop / move / delete a file, rename a folder, create a folder. The "Actions" button
+acts on the selected file, else the highlighted folder, else the current folder. The popup has
+no jQuery and no CSS framework dependency (native `<dialog>`).
 
 ### Upload
 
@@ -130,9 +138,11 @@ php bin/console importmap:require dropzone@6.0.0-beta.2
 ```
 
 Drop files anywhere in the file grid to upload them to the current folder (or onto a folder
-tile to upload them there). Files can't be dropped at the root, which holds no files.
+tile to upload them there), or pick them with the toolbar's "Importer" button (touch screens,
+keyboard). Files can't be uploaded at the root, which holds no files. Files are sent as they
+are: they aren't resized or re-encoded in the browser.
 
-Each dropped file is POSTed to `upload_url` (field `file`, plus `folder`: the target folder
+Each uploaded file is POSTed to `upload_url` (field `file`, plus `folder`: the target folder
 id). The bundle's endpoint `golpilolz_media-library_upload` (`POST /media-library/upload`)
 stores it in `upload_dir` (sanitized name, suffixed on collision), rejects extensions outside
 `allowed_extensions`, and creates the `File` entity. Like every bundle endpoint, it requires
@@ -381,7 +391,6 @@ root. Restyle it by overriding the `--ml-*` design tokens (see the top of
     --ml-font: "Inter", sans-serif;
     --ml-radius-field: 4px;   /* widget card */
     --ml-radius: 10px;        /* popup */
-    --ml-z: 1100;             /* popup z-index */
 }
 ```
 

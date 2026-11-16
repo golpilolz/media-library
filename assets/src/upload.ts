@@ -1,4 +1,4 @@
-// Drag & drop upload into the file grid, with Dropzone 6 (imported only when an upload URL is set).
+// Upload into the file grid, by drag & drop or with the "Importer" button, with Dropzone 6 (imported only when an upload URL is set).
 
 import type {MediaFile} from './types.js'
 import {LANG} from './lang.js'
@@ -6,6 +6,8 @@ import {ROOT} from './utils.js'
 import {CSRF_HEADER, toMediaFile} from './api.js'
 
 export interface UploadZone {
+    // Upload files picked with the "Importer" button into the current folder.
+    addFiles(files: File[]): void
     destroy(): void
 }
 
@@ -75,5 +77,12 @@ export const createUploadZone = async (options: UploadOptions): Promise<UploadZo
     })
     dropzone.on('complete', (file: any) => file.previewElement?.remove())
 
-    return dropzone
+    return {
+        addFiles: (files: File[]) => {
+            targetFolderId = options.currentFolder()
+            // addFile() fills in the DropzoneFile fields itself, as for its own file input.
+            files.forEach(file => dropzone.addFile(file as any))
+        },
+        destroy: () => dropzone.destroy(),
+    }
 }

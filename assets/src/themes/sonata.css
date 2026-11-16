@@ -26,8 +26,6 @@
     --ml-radius-control: .1875rem;
     --ml-radius-field: .1875rem;
     --ml-font: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    /* Above the AdminLTE header (1030) and Bootstrap 3 modals (1050). */
-    --ml-z: 1060;
 }
 
 /* Bootstrap 3 sets a .875rem/1.43 body: keep the widget's own metrics. */

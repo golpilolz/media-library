@@ -16,6 +16,8 @@
 .golpilolz-media-library .icon-cross { --ml-icon: url('icons/cross.svg'); }
 .golpilolz-media-library .icon-sort-alpha-asc { --ml-icon: url('icons/sort-alpha-asc.svg'); }
 .golpilolz-media-library .icon-sort-alpha-desc { --ml-icon: url('icons/sort-alpha-desc.svg'); }
+.golpilolz-media-library .icon-upload { --ml-icon: url('icons/upload.svg'); }
+.golpilolz-media-library .icon-more { --ml-icon: url('icons/more.svg'); }
 
 /* Large icons keep following their font-size. */
 .golpilolz-media-library .ml-thumb--folder [class^="icon-"],

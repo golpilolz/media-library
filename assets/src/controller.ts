@@ -6,7 +6,7 @@ import {LANG} from './lang.js'
 import {byName, escapeHtml, EVENT_PREFIX, extension, fileMeta, iconFor, isImage, ROOT} from './utils.js'
 import {fetchFileInfo, fetchJson, postJson, uploadFile} from './api.js'
 import {labelForm, openDialog, readTitle} from './dialog.js'
-import {closeContextMenu, openContextMenu} from './context-menu.js'
+import {closeContextMenu, isContextMenuOpen, openContextMenu} from './context-menu.js'
 import {layoutTemplate, previewTemplate} from './templates.js'
 import {infoTemplate} from './info.js'
 import {createUploadZone, type UploadZone} from './upload.js'
@@ -30,7 +30,7 @@ export default class extends Controller {
     }
 
     declare readonly inputTargets: HTMLInputElement[]
-    declare readonly popupTarget: HTMLElement
+    declare readonly popupTarget: HTMLDialogElement
     declare readonly contentTarget: HTMLElement
     declare readonly loaderTarget: HTMLElement
     declare readonly hasPreviewTarget: boolean
@@ -62,6 +62,7 @@ export default class extends Controller {
     // Bumped by every open()/close(): an open() whose await resumes after a newer
     // open() or a close() must stop, or it would re-render or attach a second Dropzone.
     private session = 0
+    private opened = false
 
     connect() {
         this.toggleButtons()
@@ -76,15 +77,21 @@ export default class extends Controller {
 
     async open() {
         const session = ++this.session
-        this.popupTarget.classList.add('show')
-        this.loaderTarget.hidden = false
-        this.selectedFileIds = new Set(this.inputValues())
-
         if (!this.rendered) {
-            this.contentTarget.innerHTML = layoutTemplate()
+            this.contentTarget.innerHTML = layoutTemplate(this.uploadUrlValue !== '')
             this.bindEvents()
             this.rendered = true
         }
+        this.loaderTarget.hidden = false
+        this.selectedFileIds = new Set(this.inputValues())
+
+        // A native modal <dialog>: top layer, inert page behind, focus kept inside, Escape = cancel.
+        if (!this.popupTarget.open) {
+            this.popupTarget.showModal()
+        }
+        this.opened = true
+        // Start on the grid rather than on the close button: Tab then goes through the tiles.
+        this.find('.ml-content').focus({preventScroll: true})
 
         let folders: MediaFolder[] | null = null
         try {
@@ -107,11 +114,19 @@ export default class extends Controller {
         this.dispatchEvent('showPopup')
     }
 
+    // Also run when the dialog closes on its own (a browser may force-close it on Escape).
     close() {
+        if (!this.opened) {
+            return
+        }
+        this.opened = false
         this.session++
-        this.popupTarget.classList.remove('show')
         this.closeContextMenu()
         this.destroyDropzone()
+        if (this.popupTarget.open) {
+            this.popupTarget.close()
+        }
+        this.focusOpener()
         this.dispatchEvent('closePopup')
     }
 
@@ -193,7 +208,12 @@ export default class extends Controller {
             folder = this.getFolder(folder.parent)
         }
         const crumbs = [{id: ROOT, name: LANG.root}, ...path]
-        this.find('.ml-breadcrumb').innerHTML = crumbs.map((crumb, index) => index === crumbs.length - 1
+        const breadcrumb = this.find('.ml-breadcrumb')
+        // A crumb that had the focus is replaced: hand it to the grid of the folder it opened.
+        if (breadcrumb.contains(document.activeElement)) {
+            this.find('.ml-content').focus({preventScroll: true})
+        }
+        breadcrumb.innerHTML = crumbs.map((crumb, index) => index === crumbs.length - 1
             ? `<span class="ml-crumb ml-crumb--current" aria-current="page">${escapeHtml(crumb.name)}</span>`
             : `<button type="button" class="ml-crumb" data-ml-action="navigate" data-folder-id="${crumb.id}">${escapeHtml(crumb.name)}</button><span class="ml-crumb-separator" aria-hidden="true">›</span>`).join('')
     }
@@ -216,18 +236,29 @@ export default class extends Controller {
                 const open = this.openFolderIds.has(folder.id)
                 const classes = ['ml-tree-item', open ? 'open' : '', folder.id === this.activeFolderId ? 'active' : ''].join(' ')
                 return `<li class="${classes}" data-folder-id="${folder.id}">
-                    ${hasChildren ? `<button type="button" class="ml-expand" data-ml-action="toggle" aria-label="${open ? 'Replier' : 'Déplier'}" aria-expanded="${open}">›</button>` : '<span class="ml-expand"></span>'}
-                    <span class="ml-tree-label" data-ml-action="navigate"><span class="${open ? 'icon-folder-open' : 'icon-folder'}"></span> ${escapeHtml(folder.name)}</span>
+                    ${hasChildren ? `<button type="button" class="ml-expand" data-ml-action="toggle" aria-label="${open ? LANG.collapse : LANG.expand} ${escapeHtml(folder.name)}" aria-expanded="${open}">›</button>` : '<span class="ml-expand"></span>'}
+                    ${label(folder.id, folder.name, open ? 'icon-folder-open' : 'icon-folder')}
                     ${hasChildren ? branch(folder.id) : ''}
                 </li>`
             }).join('')}</ul>`
         }
+        const label = (id: number, name: string, icon: string) =>
+            `<button type="button" class="ml-tree-label" data-ml-action="navigate"${id === this.activeFolderId ? ' aria-current="true"' : ''}><span class="${icon}" aria-hidden="true"></span> ${escapeHtml(name)}</button>`
+
+        // Keep the focus on the same row's button through the re-render.
+        const focused = tree.contains(document.activeElement) ? document.activeElement as HTMLElement : null
+        const focusedId = focused?.closest<HTMLElement>('[data-folder-id]')?.dataset.folderId
+        const focusedPart = focused?.classList.contains('ml-expand') ? '.ml-expand' : '.ml-tree-label'
 
         tree.innerHTML = `<ul><li class="ml-tree-item open ${this.activeFolderId === ROOT ? 'active' : ''}" data-folder-id="${ROOT}">
             <span class="ml-expand"></span>
-            <span class="ml-tree-label" data-ml-action="navigate"><span class="icon-folder-open"></span> ${LANG.root}</span>
+            ${label(ROOT, LANG.root, 'icon-folder-open')}
             ${branch(ROOT)}
         </li></ul>`
+
+        if (focusedId !== undefined) {
+            tree.querySelector<HTMLElement>(`[data-folder-id="${focusedId}"] > ${focusedPart}`)?.focus({preventScroll: true})
+        }
     }
 
     private renderContent() {
@@ -237,6 +268,10 @@ export default class extends Controller {
 
         this.highlightedFolderId = null
         this.find<HTMLInputElement>('.ml-search').value = ''
+        // A focused tile is about to be replaced: keep the focus in the grid.
+        if (content.contains(document.activeElement)) {
+            content.focus({preventScroll: true})
+        }
 
         if (folders.length === 0 && files.length === 0) {
             content.innerHTML = `<div class="ml-empty">
@@ -248,19 +283,24 @@ export default class extends Controller {
             return
         }
 
+        // Tiles are buttons: Tab reaches them, Space/Enter select a file (aria-pressed), Enter
+        // opens a folder, the ContextMenu key (or Shift+F10) opens the actions menu.
         content.innerHTML = folders.map(folder => `
-            <div class="ml-item ml-folder" data-folder-id="${folder.id}" title="${escapeHtml(folder.name)}">
-                <div class="ml-thumb ml-thumb--folder"><span class="icon-folder" aria-hidden="true"></span></div>
+            <button type="button" class="ml-item ml-folder" data-folder-id="${folder.id}" title="${escapeHtml(folder.name)}">
+                <span class="ml-thumb ml-thumb--folder"><span class="icon-folder" aria-hidden="true"></span></span>
                 <span class="ml-title">${escapeHtml(folder.name)}</span>
-            </div>`).join('')
-            + files.map(file => `
-            <div class="ml-item ml-file ${this.selectedFileIds.has(file.id) ? 'active' : ''}" data-file-id="${file.id}" title="${escapeHtml(file.name)}">
-                <div class="ml-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">
+            </button>`).join('')
+            + files.map(file => {
+                const selected = this.selectedFileIds.has(file.id)
+                return `
+            <button type="button" class="ml-item ml-file ${selected ? 'active' : ''}" aria-pressed="${selected}" data-file-id="${file.id}" title="${escapeHtml(file.name)}">
+                <span class="ml-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">
                     ${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}
-                </div>
+                </span>
                 <span class="ml-title">${escapeHtml(file.name)}</span>
                 ${fileMeta(file) ? `<span class="ml-meta">${escapeHtml(fileMeta(file))}</span>` : ''}
-            </div>`).join('')
+            </button>`
+            }).join('')
         this.updateFooter()
     }
 
@@ -274,10 +314,19 @@ export default class extends Controller {
         root.addEventListener('click', event => this.onClick(event as MouseEvent), {signal})
         root.addEventListener('dblclick', event => this.onDblClick(event as MouseEvent), {signal})
         root.addEventListener('contextmenu', event => this.onContextMenu(event as MouseEvent), {signal})
-        // Enter in the search box must not submit the surrounding Symfony form.
         root.addEventListener('keydown', event => {
-            if (event.key === 'Enter' && (event.target as HTMLElement).matches('.ml-search')) {
+            const target = event.target as HTMLElement
+            if (event.key !== 'Enter') {
+                return
+            }
+            // Enter in the search box must not submit the surrounding Symfony form.
+            if (target.matches('.ml-search')) {
                 event.preventDefault()
+            }
+            // Enter on a folder tile opens it (a click only highlights it).
+            if (target.matches('.ml-content .ml-folder')) {
+                event.preventDefault()
+                this.navigate(Number(target.dataset.folderId))
             }
         }, {signal})
         root.addEventListener('input', event => {
@@ -285,17 +334,44 @@ export default class extends Controller {
                 this.filter((event.target as HTMLInputElement).value)
             }
         }, {signal})
+        // Files picked with the "Importer" button.
+        root.addEventListener('change', event => {
+            const input = event.target as HTMLInputElement
+            if (input.matches('.ml-upload-input')) {
+                this.dropzone?.addFiles([...(input.files ?? [])])
+                input.value = ''
+            }
+        }, {signal})
         document.addEventListener('click', event => {
-            if (!(event.target as HTMLElement).closest('.ml-context-menu')) {
+            // The "Actions" button opens the menu: this same click must not close it.
+            if (!(event.target as HTMLElement).closest('.ml-context-menu, [data-ml-action="actions"]')) {
                 this.closeContextMenu()
             }
         }, {signal})
-        document.addEventListener('keydown', event => this.onKeydown(event), {signal})
+        // Escape on the panel itself (nested dialogs handle their own): close the menu, else the popup.
+        this.popupTarget.addEventListener('cancel', event => {
+            if (event.target !== this.popupTarget) {
+                return
+            }
+            event.preventDefault()
+            const menu = this.find('.ml-context-menu')
+            if (isContextMenuOpen(menu)) {
+                closeContextMenu(menu, true)
+            } else {
+                this.close()
+            }
+        }, {signal})
+        this.popupTarget.addEventListener('close', event => {
+            if (event.target === this.popupTarget) {
+                this.close()
+            }
+        }, {signal})
         this.find('.ml-content').addEventListener('scroll', () => this.closeContextMenu(), {signal})
         this.find('.ml-zoom').addEventListener('click', event => (event.currentTarget as HTMLDialogElement).close(), {signal})
     }
 
     private teardown() {
+        this.opened = false
         this.session++
         this.abort?.abort()
         this.abort = null
@@ -324,6 +400,14 @@ export default class extends Controller {
             case 'zoom':
                 this.zoom()
                 return
+            case 'actions': {
+                const {left, bottom} = target.closest('[data-ml-action]').getBoundingClientRect()
+                this.openMenu(this.actionTarget(), left, bottom + 4)
+                return
+            }
+            case 'upload':
+                this.pickFiles()
+                return
             case 'cancel':
                 this.close()
                 return
@@ -351,7 +435,7 @@ export default class extends Controller {
         } else if (file) {
             this.toggleFile(file)
         } else {
-            this.findAll('.ml-content .ml-item.active').forEach(item => item.classList.remove('active'))
+            this.findAll('.ml-content .ml-item.active').forEach(item => this.setActive(item, false))
             this.highlightedFolderId = null
             this.selectedFileIds.clear()
         }
@@ -370,35 +454,29 @@ export default class extends Controller {
         }
     }
 
-    private onKeydown(event: KeyboardEvent) {
-        if (event.key !== 'Escape' || !this.popupTarget.classList.contains('show')) {
-            return
+    // The "active" class, plus aria-pressed on a file tile (its selected state).
+    private setActive(item: HTMLElement, active: boolean) {
+        item.classList.toggle('active', active)
+        if (item.matches('.ml-file')) {
+            item.setAttribute('aria-pressed', String(active))
         }
-        // Open <dialog>s handle Escape themselves.
-        if (this.contentTarget.querySelector('dialog[open]')) {
-            return
-        }
-        if (!this.find('.ml-context-menu').hidden) {
-            this.closeContextMenu()
-            return
-        }
-        this.close()
     }
 
     private highlight(item: HTMLElement) {
-        this.findAll('.ml-content .ml-folder.active').forEach(other => other.classList.remove('active'))
+        this.findAll('.ml-content .ml-folder.active').forEach(other => this.setActive(other, false))
         if (!this.multipleValue) {
-            this.findAll('.ml-content .ml-item.active').forEach(other => other.classList.remove('active'))
+            this.findAll('.ml-content .ml-item.active').forEach(other => this.setActive(other, false))
             this.selectedFileIds.clear()
         }
-        item.classList.add('active')
+        this.setActive(item, true)
     }
 
     private toggleFile(item: HTMLElement) {
         const id = Number(item.dataset.fileId)
         if (this.multipleValue) {
-            item.classList.toggle('active')
-            item.classList.contains('active') ? this.selectedFileIds.add(id) : this.selectedFileIds.delete(id)
+            const active = !item.classList.contains('active')
+            this.setActive(item, active)
+            active ? this.selectedFileIds.add(id) : this.selectedFileIds.delete(id)
             return
         }
         this.highlight(item)
@@ -493,6 +571,7 @@ export default class extends Controller {
 
     // ---- Context menu ----------------------------------------------------
 
+    // Right-click, or the ContextMenu key / Shift+F10 on a focused tile.
     private onContextMenu(event: MouseEvent) {
         const target = event.target as HTMLElement
         if (!target.closest('.ml-content')) {
@@ -500,15 +579,25 @@ export default class extends Controller {
         }
         event.preventDefault()
 
-        const folderElement = target.closest<HTMLElement>('.ml-folder')
-        const fileElement = target.closest<HTMLElement>('.ml-file')
-        let items: MenuItem[]
+        const item = target.closest<HTMLElement>('.ml-item')
+        let {clientX: x, clientY: y} = event
+        // From the keyboard there's no pointer position (Chrome: pointerType ''): open over the tile.
+        if (('pointerType' in event && (event as PointerEvent).pointerType === '') || (x === 0 && y === 0)) {
+            const rect = (item ?? target).getBoundingClientRect()
+            x = rect.left + rect.width / 2
+            y = rect.top + rect.height / 2
+        }
+        this.openMenu(item, x, y)
+    }
 
-        if (folderElement) {
-            const folder = this.getFolder(Number(folderElement.dataset.folderId))
+    // The menu of a folder or file tile, or of the current folder (`item` null).
+    private openMenu(item: HTMLElement | null, x: number, y: number) {
+        let items: MenuItem[]
+        if (item?.matches('.ml-folder')) {
+            const folder = this.getFolder(Number(item.dataset.folderId))
             items = [{label: LANG.rename, action: () => this.renameFolder(folder)}]
-        } else if (fileElement) {
-            const file = this.getFile(Number(fileElement.dataset.fileId))
+        } else if (item?.matches('.ml-file')) {
+            const file = this.getFile(Number(item.dataset.fileId))
             items = [
                 {label: LANG.info, action: () => this.fileInfo(file)},
                 {label: LANG.rename, action: () => this.renameFile(file)},
@@ -519,12 +608,37 @@ export default class extends Controller {
         } else {
             items = [{label: LANG.newFolder, action: () => this.addFolder()}]
         }
+        openContextMenu(this.find('.ml-context-menu'), items, x, y)
+    }
 
-        openContextMenu(this.find('.ml-context-menu'), items, event.clientX, event.clientY)
+    // The "Actions" button (touch screens get no right-click on iOS) acts on the one selected
+    // file, else the highlighted folder, else the current folder.
+    private actionTarget(): HTMLElement | null {
+        if (this.selectedFileIds.size === 1) {
+            const file = this.find(`.ml-content .ml-file[data-file-id="${[...this.selectedFileIds][0]}"]`)
+            if (file) {
+                return file
+            }
+        }
+        if (this.highlightedFolderId !== null) {
+            return this.find(`.ml-content .ml-folder[data-folder-id="${this.highlightedFolderId}"]`)
+        }
+        return null
     }
 
     private closeContextMenu() {
         closeContextMenu(this.contentTarget.querySelector<HTMLElement>('.ml-context-menu'))
+    }
+
+    // After the popup closes, the browser gives the focus back to the button that opened it,
+    // unless that button got hidden (empty → filled): then focus the field's visible open button.
+    private focusOpener() {
+        const active = document.activeElement as HTMLElement | null
+        if (active && active !== document.body && !active.closest('[hidden]') && !this.popupTarget.contains(active)) {
+            return
+        }
+        const buttons = this.element.querySelectorAll<HTMLElement>(`[data-action~="${this.identifier}#open"]`)
+        ;[...buttons].find(button => !button.closest('[hidden]'))?.focus({preventScroll: true})
     }
 
     // ---- Actions with dialogs -------------------------------------------
@@ -799,6 +913,19 @@ export default class extends Controller {
             },
             onError: message => this.alert(message, 'danger'),
         }) ?? this.dropzone
+    }
+
+    // The "Importer" button: the file picker, for touch screens and the keyboard.
+    private pickFiles() {
+        if (this.activeFolderId === ROOT) {
+            this.alert(LANG.errorUploadRoot, 'danger')
+            return
+        }
+        if (!this.dropzone) {
+            this.alert(LANG.errorUpload, 'danger')
+            return
+        }
+        this.find<HTMLInputElement>('.ml-upload-input').click()
     }
 
     private destroyDropzone() {

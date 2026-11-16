@@ -26,7 +26,6 @@
     --ml-radius-field: .75rem;
     --ml-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --ml-ease: cubic-bezier(.25, .1, .25, 1);
-    --ml-z: 1000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -333,27 +332,20 @@
 
 /* ---- Overlay + panel ---- */
 
-.ml-popup {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: var(--ml-z);
-}
-
-.ml-popup.show {
-    display: block;
-}
-
-/* Blur on a pseudo-element: backdrop-filter (like transform) on an ancestor would become
-   the containing block of the position: fixed context menu. */
-.ml-popup::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--ml-backdrop);
+/* The panel is a native <dialog> opened with showModal(): it sits in the top layer, above any
+   z-index of the host page. The blur is on its ::backdrop, which is not an ancestor of the
+   panel (backdrop-filter, like transform, on an ancestor would become the containing block
+   of the position: fixed context menu). ::backdrop may not inherit the tokens: fallbacks. */
+.golpilolz-media-library.ml-panel::backdrop {
+    background: var(--ml-backdrop, rgba(0, 0, 0, .32));
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
-    animation: ml-fade-in .2s var(--ml-ease);
+    animation: ml-fade-in .2s var(--ml-ease, ease);
+}
+
+/* The page behind the open popup doesn't scroll. */
+html:has(.golpilolz-media-library.ml-panel[open]) {
+    overflow: hidden;
 }
 
 .golpilolz-media-library.ml-panel {
@@ -362,8 +354,10 @@
     margin: auto;
     width: min(67.5rem, calc(100vw - 3rem));
     height: min(45rem, calc(100vh - 3rem));
-    display: flex;
-    flex-direction: column;
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    border: none;
     overflow: hidden;
     border-radius: var(--ml-radius);
     background: var(--ml-surface);
@@ -373,6 +367,12 @@
     -webkit-font-smoothing: antialiased;
     text-align: left;
     animation: ml-panel-in .28s var(--ml-ease);
+}
+
+/* Not on the base rule: it would override the closed dialog's display: none. */
+.golpilolz-media-library.ml-panel[open] {
+    display: flex;
+    flex-direction: column;
 }
 
 .golpilolz-media-library *,
@@ -637,6 +637,9 @@
     min-width: 0;
     height: 1.875rem;
     padding: 0 .5rem;
+    border: none;
+    background: none;
+    text-align: left;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -688,8 +691,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 0;
     padding: .5rem;
+    border: none;
     border-radius: .75rem;
+    background: none;
     cursor: pointer;
     user-select: none;
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
@@ -1445,7 +1451,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ml-popup::before,
+    .golpilolz-media-library.ml-panel::backdrop,
     .golpilolz-media-library,
     .golpilolz-media-library * {
         animation-duration: .01ms !important;

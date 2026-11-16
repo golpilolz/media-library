@@ -28,8 +28,6 @@
     --ml-radius-control: var(--border-radius, .25rem);
     --ml-radius-field: var(--border-radius-lg, .5rem);
     --ml-font: var(--font-family-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
-    /* Above EasyAdmin's modals (backdrop at 2020). */
-    --ml-z: 2030;
 }
 
 .ea-dark-scheme .golpilolz-media-library-widget.ml-theme-easyadmin,

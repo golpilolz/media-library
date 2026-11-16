@@ -29,8 +29,6 @@
     --ml-radius-control: var(--tblr-border-radius, .25rem);
     --ml-radius-field: var(--tblr-border-radius, .25rem);
     --ml-font: var(--tblr-font-sans-serif, "InterVariable", Arial, sans-serif);
-    /* Above Bootstrap's modals (1055), below its popovers and tooltips (1070+). */
-    --ml-z: 1060;
 }
 
 [data-bs-theme=dark] .golpilolz-media-library-widget.ml-theme-sylius,
