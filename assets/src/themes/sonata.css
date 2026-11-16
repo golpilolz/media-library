@@ -7,6 +7,9 @@
     --ml-accent-hover: #367fa9;
     --ml-on-accent: #fff;
     --ml-danger: #dd4b39;
+    /* Fills follow the theme's colors, not the default dark-scheme fills. */
+    --ml-accent-fill: var(--ml-accent);
+    --ml-danger-fill: var(--ml-danger);
     --ml-text: #333;
     --ml-text-secondary: #777;
     --ml-surface: #fff;

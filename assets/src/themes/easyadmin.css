@@ -9,6 +9,9 @@
     /* Light accent in the dark scheme: text in the content background color stays readable. */
     --ml-on-accent: var(--content-bg, #fff);
     --ml-danger: var(--color-danger, #dc2626);
+    /* Fills follow the theme's colors, not the default dark-scheme fills. */
+    --ml-accent-fill: var(--ml-accent);
+    --ml-danger-fill: var(--ml-danger);
     --ml-text: var(--text-color, #1e293b);
     --ml-text-secondary: var(--text-muted, #64748b);
     --ml-surface: var(--content-bg, #fff);

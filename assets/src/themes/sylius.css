@@ -9,6 +9,9 @@
     --ml-accent-hover: color-mix(in srgb, var(--ml-accent) 85%, #000);
     --ml-on-accent: #fff;
     --ml-danger: var(--tblr-danger, #d63939);
+    /* Fills follow the theme's colors, not the default dark-scheme fills. */
+    --ml-accent-fill: var(--ml-accent);
+    --ml-danger-fill: var(--ml-danger);
     --ml-text: var(--tblr-body-color, #212529);
     --ml-text-secondary: var(--tblr-secondary-color, #6c757d);
     --ml-surface: var(--tblr-bg-surface, #fff);

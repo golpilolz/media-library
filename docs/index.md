@@ -388,6 +388,7 @@ root. Restyle it by overriding the `--ml-*` design tokens (see the top of
 .golpilolz-media-library-widget.ml-theme-acme,
 .ml-theme-acme .golpilolz-media-library {
     --ml-accent: #e4007c;
+    --ml-accent-fill: var(--ml-accent);
     --ml-font: "Inter", sans-serif;
     --ml-radius-field: 4px;   /* widget card */
     --ml-radius: 10px;        /* popup */
@@ -395,6 +396,15 @@ root. Restyle it by overriding the `--ml-*` design tokens (see the top of
 ```
 
 Set every color token if the theme must ignore the OS dark scheme.
+
+`--ml-accent` and `--ml-danger` color text, borders and focus rings; `--ml-accent-fill`,
+`--ml-accent-hover` and `--ml-danger-fill` are backgrounds under white text (`--ml-on-accent`:
+the selected folder, the primary and delete buttons, the menu highlight, error toasts). They're
+separate because in dark mode no single blue or red reaches the 4.5:1 text contrast both as
+text on the dark surface and as a background under white text, so the default dark scheme sets
+them apart. A theme that sets only the text colors should map the fills onto them
+(`--ml-accent-fill: var(--ml-accent)`, `--ml-danger-fill: var(--ml-danger)`), or it gets the
+default blue and red fills in dark mode; the built-in themes do.
 
 To change the widget markup for one theme, define the Twig block
 `golpilolz_media_library_single_theme_<name>_widget` in a form theme. Twig picks it before the
