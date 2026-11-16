@@ -1455,4 +1455,9 @@
     .golpilolz-media-library .ml-spinner {
         animation-duration: 1.6s !important;
     }
+
+    /* An infinite alternate animation at .01ms would flip its opacity every frame. */
+    .golpilolz-media-library .ml-info-pending {
+        animation: none !important;
+    }
 }

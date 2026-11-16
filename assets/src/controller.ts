@@ -572,8 +572,12 @@ export default class extends Controller {
                     const name = readTitle(dialog)
                     let response: { id?: number } | undefined
                     try {
-                        response = await this.emit<{ id?: number }>('add-folder', {parent: this.getFolder(parent) ?? null, name})
-                            ?? await this.createFolder(name, parent)
+                        // A listener that answered replaces the endpoint, even if it resolves without an id.
+                        let answered = false
+                        response = await this.emit<{ id?: number }>('add-folder', {parent: this.getFolder(parent) ?? null, name}, () => answered = true)
+                        if (!answered) {
+                            response = await this.createFolder(name, parent)
+                        }
                     } catch (error) {
                         console.error(error)
                         throw new Error(LANG.errorAddFolder)

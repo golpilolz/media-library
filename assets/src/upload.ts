@@ -31,15 +31,20 @@ export const createUploadZone = async (options: UploadOptions): Promise<UploadZo
         return null
     }
 
+    // Folder of the current drop. Each file keeps its own copy (folderOf), so a file still queued
+    // from an earlier drop isn't sent to the folder of a later one.
     let targetFolderId = options.currentFolder()
+    const folders = new WeakMap<File, number>()
+    const folderOf = (file: File): number => folders.get(file) ?? targetFolderId
     const dropzone = new Dropzone(options.element, {
         url: options.url,
         headers: options.csrfToken === '' ? undefined : {[CSRF_HEADER]: options.csrfToken},
         previewsContainer: options.previews,
         clickable: false,
         // Files belong to a folder: the root has none to store them in.
-        accept: (file: File, done: (error?: string) => void) => done(targetFolderId === ROOT ? LANG.errorUploadRoot : undefined),
-        resizeWidth: 1920,
+        accept: (file: File, done: (error?: string) => void) => done(folderOf(file) === ROOT ? LANG.errorUploadRoot : undefined),
+        // No resizeWidth/resizeHeight: Dropzone would re-encode every raster image through a canvas
+        // (lossy JPEG, GIF/AVIF turned into PNG data under their own extension).
         previewTemplate: `<div class="dz-preview dz-file-preview">
             <div class="dz-details"><img data-dz-thumbnail alt=""><span class="dz-filename" data-dz-name></span></div>
             <div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
@@ -50,9 +55,11 @@ export const createUploadZone = async (options: UploadOptions): Promise<UploadZo
         const folder = (event.target as HTMLElement).closest<HTMLElement>('.ml-folder')
         targetFolderId = folder ? Number(folder.dataset.folderId) : options.currentFolder()
     })
+    // Fired for each dropped file after 'drop' and before accept().
+    dropzone.on('addedfile', (file: File) => folders.set(file, targetFolderId))
     dropzone.on('sending', (file: File, xhr: XMLHttpRequest, formData: FormData) => {
-        formData.append('folder', String(targetFolderId))
-        options.onSending(file, targetFolderId, xhr, formData)
+        formData.append('folder', String(folderOf(file)))
+        options.onSending(file, folderOf(file), xhr, formData)
     })
     dropzone.on('success', (file: File, json: any) => {
         if (json?.result !== 'success') {
