@@ -13,9 +13,9 @@ export const layoutTemplate = (upload: boolean): string => {
             <h2 class="ml-heading">${LANG.title}</h2>
         </header>
         <div class="ml-toolbar">
-            <nav class="ml-breadcrumb" aria-label="Chemin"></nav>
+            <nav class="ml-breadcrumb" aria-label="${LANG.breadcrumb}"></nav>
             <div class="ml-toolbar-actions">
-                <div class="ml-segmented" role="group" aria-label="Tri">
+                <div class="ml-segmented" role="group" aria-label="${LANG.sort}">
                     <button type="button" class="ml-segment active" data-ml-action="sort-asc" title="${LANG.sortAsc}" aria-label="${LANG.sortAsc}" aria-pressed="true"><span class="icon-sort-alpha-asc"></span></button>
                     <button type="button" class="ml-segment" data-ml-action="sort-desc" title="${LANG.sortDesc}" aria-label="${LANG.sortDesc}" aria-pressed="false"><span class="icon-sort-alpha-desc"></span></button>
                 </div>
@@ -30,7 +30,7 @@ export const layoutTemplate = (upload: boolean): string => {
             </div>
         </div>
         <div class="ml-body">
-            <nav class="ml-tree" aria-label="Dossiers"></nav>
+            <nav class="ml-tree" aria-label="${LANG.folders}"></nav>
             <div class="ml-content" tabindex="-1"></div>
         </div>
         <div class="ml-infos"></div>

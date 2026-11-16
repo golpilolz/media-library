@@ -33,6 +33,8 @@ class MediaLibraryController extends AbstractController
     /**
      * Every folder with its files, for the popup. A file's `size` (bytes) and, for an image, `width` and
      * `height` (pixels) are read from the stored file when its URL is under `upload_path`, null otherwise.
+     * With `?files=0` the folders come without their `files` key: the popup then loads each folder's
+     * files when it's opened (folderFilesAction), so a large library isn't sent and read at once.
      */
     #[Route('/folders', name: 'folders', methods: ['GET'])]
     public function foldersAction(
@@ -40,35 +42,70 @@ class MediaLibraryController extends AbstractController
         FolderRepository $folderRepository,
         #[Autowire(param: 'golpilolz_medialibrary.upload_dir')] string $uploadDir,
         #[Autowire(param: 'golpilolz_medialibrary.upload_path')] string $uploadPath,
+        #[MapQueryParameter] bool $files = true,
     ): JsonResponse {
         $json = [];
 
-        foreach ($folderRepository->findAll() as $folder) {
-            $jsonFiles = [];
-
-            foreach ($folder->getFiles() as $file) {
-                $jsonFiles[] = [
-                    'id' => $file->getId(),
-                    'name' => $file->getName(),
-                    'url' => $this->publicUrl($request, $file),
-                    ...$this->storedDetails($file, $uploadDir, $uploadPath),
-                ];
-            }
-
+        foreach ($files ? $folderRepository->findAllWithFiles() : $folderRepository->findAll() as $folder) {
             $parent = $folder->getParent();
 
-            $json[] = [
+            $item = [
                 'id' => $folder->getId(),
                 'type' => 'folder',
                 'name' => $folder->getName(),
                 'parent' => $parent instanceof Folder ? $parent->getId() : $parent,
                 'active' => false,
                 'open' => false,
-                'files' => $jsonFiles
             ];
+            if ($files) {
+                $item['files'] = $this->filesJson($request, $folder, $uploadDir, $uploadPath);
+            }
+            $json[] = $item;
         }
 
         return new JsonResponse($json);
+    }
+
+    /**
+     * The files of one folder, loaded by the popup when that folder is opened:
+     * `GET /media-library/folders/files?folder=<id>`, answering `{"result": "success", "files": [...]}`
+     * (same file shape as foldersAction). A missing or non-integer `folder` gets a 404, an unknown one a 400.
+     */
+    #[Route('/folders/files', name: 'folder_files', methods: ['GET'])]
+    public function folderFilesAction(
+        Request $request,
+        #[MapQueryParameter(options: ['min_range' => 1])] int $folder,
+        FolderRepository $folderRepository,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_dir')] string $uploadDir,
+        #[Autowire(param: 'golpilolz_medialibrary.upload_path')] string $uploadPath,
+    ): JsonResponse {
+        $entity = $folderRepository->find($folder);
+        if (!$entity instanceof Folder) {
+            return $this->uploadError('Unknown folder.');
+        }
+
+        return new JsonResponse([
+            'result' => 'success',
+            'files' => $this->filesJson($request, $entity, $uploadDir, $uploadPath),
+        ]);
+    }
+
+    /**
+     * @return list<array{id: int, name: string, url: string, size: ?int, width: ?int, height: ?int}>
+     */
+    private function filesJson(Request $request, Folder $folder, string $uploadDir, string $uploadPath): array
+    {
+        $json = [];
+        foreach ($folder->getFiles() as $file) {
+            $json[] = [
+                'id' => $file->getId(),
+                'name' => $file->getName(),
+                'url' => $this->publicUrl($request, $file),
+                ...$this->storedDetails($file, $uploadDir, $uploadPath),
+            ];
+        }
+
+        return $json;
     }
 
     /**

@@ -4,7 +4,7 @@ import {Controller} from '@hotwired/stimulus';
 import type {MediaFile, MediaFileInfo, MediaFolder, MenuItem, DialogButton} from './types.js'
 import {LANG} from './lang.js'
 import {byName, escapeHtml, EVENT_PREFIX, extension, fileMeta, iconFor, isImage, ROOT} from './utils.js'
-import {fetchFileInfo, fetchJson, postJson, uploadFile} from './api.js'
+import {fetchFileInfo, fetchFolderFiles, fetchJson, postJson, uploadFile, withQuery} from './api.js'
 import {labelForm, openDialog, readTitle} from './dialog.js'
 import {closeContextMenu, isContextMenuOpen, openContextMenu} from './context-menu.js'
 import {layoutTemplate, previewTemplate} from './templates.js'
@@ -18,6 +18,8 @@ export default class extends Controller {
     static targets = ['input', 'popup', 'content', 'loader', 'preview', 'empty', 'filled', 'count']
     static values = {
         foldersUrl: String,
+        // Empty (e.g. a theme's own widget markup without it): every file comes with the folders.
+        folderFilesUrl: {type: String, default: ''},
         uploadUrl: {type: String, default: ''},
         folderUrl: {type: String, default: ''},
         renameFileUrl: {type: String, default: ''},
@@ -40,6 +42,7 @@ export default class extends Controller {
     declare readonly hasCountTarget: boolean
     declare readonly countTarget: HTMLElement
     declare readonly foldersUrlValue: string
+    declare readonly folderFilesUrlValue: string
     declare readonly uploadUrlValue: string
     declare readonly folderUrlValue: string
     declare readonly renameFileUrlValue: string
@@ -63,6 +66,9 @@ export default class extends Controller {
     // open() or a close() must stop, or it would re-render or attach a second Dropzone.
     private session = 0
     private opened = false
+    // Per-folder file loading: requests in flight, and folders whose last load failed.
+    private loadingFiles = new WeakMap<MediaFolder, Promise<void>>()
+    private failedFiles = new WeakSet<MediaFolder>()
 
     connect() {
         this.toggleButtons()
@@ -96,7 +102,9 @@ export default class extends Controller {
 
         let folders: MediaFolder[] | null = null
         try {
-            folders = await fetchJson<MediaFolder[]>(this.foldersUrlValue)
+            // With the folder_files endpoint, folders come without files: each folder's files
+            // are loaded when it's opened (loadFiles), not the whole library at once.
+            folders = await fetchJson<MediaFolder[]>(this.lazyFiles() ? withQuery(this.foldersUrlValue, {files: '0'}) : this.foldersUrlValue)
         } catch (error) {
             console.error(error)
         }
@@ -111,6 +119,7 @@ export default class extends Controller {
         }
 
         this.render()
+        void this.loadFiles(this.activeFolderId)
         await this.initDropzone(session)
         this.dispatchEvent('showPopup')
     }
@@ -146,7 +155,8 @@ export default class extends Controller {
     // ---- Data ------------------------------------------------------------
 
     private setFolders(folders: MediaFolder[]) {
-        this.folders = folders.map(folder => ({...folder, parent: folder.parent ?? ROOT, files: folder.files ?? []}))
+        // files undefined = not loaded yet (lazy mode).
+        this.folders = folders.map(folder => ({...folder, parent: folder.parent ?? ROOT, files: folder.files ?? (this.lazyFiles() ? undefined : [])}))
 
         const active = this.folders.find(folder => folder.active)
         if (active) {
@@ -272,6 +282,25 @@ export default class extends Controller {
             content.focus({preventScroll: true})
         }
 
+        // Tiles are buttons: Tab reaches them, Space/Enter select a file (aria-pressed), Enter
+        // opens a folder, the ContextMenu key (or Shift+F10) opens the actions menu.
+        const folderTiles = folders.map(folder => `
+            <button type="button" class="ml-item ml-folder" data-folder-id="${folder.id}" title="${escapeHtml(folder.name)}">
+                <span class="ml-thumb ml-thumb--folder"><span class="icon-folder" aria-hidden="true"></span></span>
+                <span class="ml-title">${escapeHtml(folder.name)}</span>
+            </button>`).join('')
+
+        // Files not loaded yet (lazy mode): the subfolders, then a spinner, or the error and a retry.
+        const current = this.getFolder(this.activeFolderId)
+        if (current && current.files === undefined) {
+            content.innerHTML = folderTiles + (this.failedFiles.has(current)
+                ? `<p class="ml-grid-status" role="alert">${LANG.errorLoadFolder}
+                    <button type="button" class="ml-btn" data-ml-action="retry">${LANG.retry}</button></p>`
+                : `<p class="ml-grid-status" role="status"><span class="ml-spinner" aria-hidden="true"></span>${LANG.loadingFolder}</p>`)
+            this.updateFooter()
+            return
+        }
+
         if (folders.length === 0 && files.length === 0) {
             content.innerHTML = `<div class="ml-empty">
                 <span class="ml-empty-icon icon-folder-open" aria-hidden="true"></span>
@@ -282,19 +311,13 @@ export default class extends Controller {
             return
         }
 
-        // Tiles are buttons: Tab reaches them, Space/Enter select a file (aria-pressed), Enter
-        // opens a folder, the ContextMenu key (or Shift+F10) opens the actions menu.
-        content.innerHTML = folders.map(folder => `
-            <button type="button" class="ml-item ml-folder" data-folder-id="${folder.id}" title="${escapeHtml(folder.name)}">
-                <span class="ml-thumb ml-thumb--folder"><span class="icon-folder" aria-hidden="true"></span></span>
-                <span class="ml-title">${escapeHtml(folder.name)}</span>
-            </button>`).join('')
+        content.innerHTML = folderTiles
             + files.map(file => {
                 const selected = this.selectedFileIds.has(file.id)
                 return `
             <button type="button" class="ml-item ml-file ${selected ? 'active' : ''}" aria-pressed="${selected}" data-file-id="${file.id}" title="${escapeHtml(file.name)}">
                 <span class="ml-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">
-                    ${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}
+                    ${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy" decoding="async">` : ''}
                 </span>
                 <span class="ml-title">${escapeHtml(file.name)}</span>
                 ${fileMeta(file) ? `<span class="ml-meta">${escapeHtml(fileMeta(file))}</span>` : ''}
@@ -416,6 +439,9 @@ export default class extends Controller {
             case 'upload':
                 this.pickFiles()
                 return
+            case 'retry':
+                void this.loadFiles(this.activeFolderId)
+                return
             case 'cancel':
                 this.close()
                 return
@@ -500,11 +526,61 @@ export default class extends Controller {
             this.openFolderIds.add(id)
         }
         this.render()
+        void this.loadFiles(id)
     }
 
+    private lazyFiles(): boolean {
+        return this.folderFilesUrlValue !== ''
+    }
+
+    // Load a folder's files the first time it's shown, then show them if it's still the current one.
+    private loadFiles(id: number): Promise<void> {
+        const folder = this.getFolder(id)
+        if (!folder || folder.files !== undefined || !this.lazyFiles()) {
+            return Promise.resolve()
+        }
+        const pending = this.loadingFiles.get(folder)
+        if (pending) {
+            return pending
+        }
+        const session = this.session
+        this.failedFiles.delete(folder)
+        const load = fetchFolderFiles(this.folderFilesUrlValue, id).then(files => {
+            folder.files = files
+        }, error => {
+            console.error(error)
+            this.failedFiles.add(folder)
+        }).finally(() => {
+            this.loadingFiles.delete(folder)
+            // Drop the answer if the popup was closed or reopened (the folders were replaced) meanwhile.
+            if (session === this.session && this.activeFolderId === id && this.getFolder(id) === folder) {
+                this.renderContent()
+            }
+        })
+        this.loadingFiles.set(folder, load)
+        if (this.activeFolderId === id) {
+            this.renderContent()
+        }
+        return load
+    }
+
+    // Updates the row in place rather than re-rendering the tree, so the chevron's rotation plays.
     private toggleFolder(id: number) {
-        this.openFolderIds.has(id) ? this.openFolderIds.delete(id) : this.openFolderIds.add(id)
-        this.renderTree()
+        const open = !this.openFolderIds.has(id)
+        open ? this.openFolderIds.add(id) : this.openFolderIds.delete(id)
+        const item = this.find(`.ml-tree [data-folder-id="${id}"]`)
+        if (!item) {
+            this.renderTree()
+            return
+        }
+        item.classList.toggle('open', open)
+        const expand = item.querySelector<HTMLElement>(':scope > .ml-expand')
+        expand?.setAttribute('aria-expanded', String(open))
+        expand?.setAttribute('aria-label', `${open ? LANG.collapse : LANG.expand} ${this.getFolder(id)?.name ?? ''}`)
+        const icon = item.querySelector(':scope > .ml-tree-label > [class^="icon-"]')
+        if (icon) {
+            icon.className = open ? 'icon-folder-open' : 'icon-folder'
+        }
     }
 
     private filter(search: string) {
@@ -536,13 +612,16 @@ export default class extends Controller {
 
     // ---- Selection / form value -----------------------------------------
 
+    // Files already in the field may sit in folders not loaded in this session: they're kept as they are.
     private select(ids: number[]) {
-        const files = ids.map(id => this.getFile(id)).filter((file): file is MediaFile => file !== undefined)
-        if (files.length === 0) {
+        const current = this.inputValues()
+        const kept = ids.filter(id => this.getFile(id) !== undefined || current.includes(id))
+        if (kept.length === 0) {
             return
         }
-        this.writeValue(files.map(file => file.id), files)
-        this.dispatchEvent('select', {files})
+        const files = kept.map(id => this.getFile(id)).filter((file): file is MediaFile => file !== undefined)
+        this.writeValue(kept)
+        this.dispatchEvent('select', {files, ids: kept})
         this.close()
     }
 
@@ -550,10 +629,14 @@ export default class extends Controller {
         return this.inputTargets.map(input => input.value).filter(value => value !== '').map(Number)
     }
 
-    private writeValue(ids: number[], files: MediaFile[] = []) {
+    private writeValue(ids: number[]) {
         this.writeInputs(ids)
         if (this.hasPreviewTarget) {
-            this.previewTarget.innerHTML = files.map(file => previewTemplate(file, this.multipleValue, this.identifier)).join('')
+            // A file the popup didn't load keeps its current preview.
+            this.previewTarget.innerHTML = ids.map(id => {
+                const file = this.getFile(id)
+                return file ? previewTemplate(file, this.multipleValue, this.identifier) : this.previewItem(id)?.outerHTML ?? ''
+            }).join('')
         }
         this.toggleButtons()
     }
@@ -608,7 +691,7 @@ export default class extends Controller {
         this.filledTargets.forEach(element => element.hidden = !filled)
         if (this.hasCountTarget) {
             const count = this.inputValues().length
-            this.countTarget.textContent = count > 1 ? `${count} fichiers` : '1 fichier'
+            this.countTarget.textContent = LANG.fileCount(count)
         }
     }
 
@@ -787,7 +870,10 @@ export default class extends Controller {
                     if (source) {
                         source.files = source.files.filter(other => other.id !== file.id)
                     }
-                    target.files = [...(target.files ?? []), file]
+                    // A folder not loaded yet gets the file from the server when it's opened.
+                    if (target.files) {
+                        target.files = [...target.files, file]
+                    }
                     this.renderContent()
                     this.alert(LANG.successMoveFile)
                 },
@@ -951,8 +1037,9 @@ export default class extends Controller {
                 this.dispatchEvent('upload-sending', {file, folder: this.getFolder(folder) ?? null, xhr, formData}),
             onUploaded: (file, parent) => {
                 const folder = this.getFolder(parent)
-                if (folder) {
-                    folder.files = [...(folder.files ?? []), file]
+                // A folder not loaded yet (file dropped on its tile) gets it when it's opened.
+                if (folder?.files) {
+                    folder.files = [...folder.files, file]
                     this.renderContent()
                 }
                 this.alert(LANG.successUploadFile)

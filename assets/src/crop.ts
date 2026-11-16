@@ -6,7 +6,7 @@ import {clamp, escapeHtml, extension} from './utils.js'
 
 // Images a canvas can re-encode, and the MIME type it writes them in.
 export const CROP_TYPES: Record<string, string> = {jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp'}
-const CROP_RATIOS: Array<[string, number | null]> = [['Libre', null], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]]
+const CROP_RATIOS: Array<[string, number | null]> = [[LANG.cropFree, null], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]]
 const CROP_HANDLES = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se']
 
 export const isCroppable = (file: MediaFile): boolean => extension(file.url) in CROP_TYPES

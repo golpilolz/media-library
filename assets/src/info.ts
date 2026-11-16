@@ -29,7 +29,7 @@ export const infoTemplate = (info: MediaFileInfo, loading: boolean): string => {
             ${row(LANG.infoType, loading && !info.mimeType ? pending : type.length ? escapeHtml(type.join(' · ')) : null)}
             ${row(LANG.infoSize, detail(info.size, () => escapeHtml(formatSize(info.size))))}
             ${row(LANG.infoDimensions, isImage(info) || info.width ? detail(info.width, () => `${info.width} × ${info.height} px`) : null)}
-            ${row(LANG.infoModified, detail(modified, () => escapeHtml(modified.toLocaleString('fr-FR', {dateStyle: 'long', timeStyle: 'short'}))))}
+            ${row(LANG.infoModified, detail(modified, () => escapeHtml(modified.toLocaleString(LANG.locale, {dateStyle: 'long', timeStyle: 'short'}))))}
             ${row(LANG.infoUrl, `<a href="${escapeHtml(info.url)}" target="_blank" rel="noopener">${escapeHtml(info.url)}</a>`)}
             ${row(LANG.infoId, escapeHtml(info.id))}
         </dl>

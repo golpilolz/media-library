@@ -56,7 +56,8 @@ The bundle's endpoints (`/media-library/*`) are guarded by `Security\EndpointAcc
 which runs before each action of `MediaLibraryController`, whatever prefix the routes are
 imported under:
 
-- the read endpoints (`GET /media-library/folders`, `GET /media-library/files/info`) need
+- the read endpoints (`GET /media-library/folders`, `GET /media-library/folders/files`,
+  `GET /media-library/files/info`) need
   `security.view_role`; the write endpoints (upload, add/rename folder, rename/move/delete file)
   need `security.edit_role`. Both default to `ROLE_ADMIN` and accept anything `is_granted()`
   does (a role, `IS_AUTHENTICATED`, a voter attribute). `null` skips the check;
@@ -108,6 +109,16 @@ The widget renders a button opening the popup; folders and files are loaded from
 JSON route `golpilolz_media-library_folders` (`GET /media-library/folders`). Double-click a
 file (or, with `multiple`, select files and press ✓) to write its id to the hidden input.
 
+The popup doesn't load the whole library at once: it asks `GET /media-library/folders?files=0`
+for the folder tree only, then the files of each folder when it's opened, from
+`golpilolz_media-library_folder_files` (`GET /media-library/folders/files?folder=<id>`, answering
+`{"result": "success", "files": [...]}` with the same file shape). A folder's files are loaded
+once per opening of the popup; a failed load shows an error with a "Réessayer" button. Without
+`?files=0`, `/media-library/folders` still answers every folder with its `files`, in one query.
+A theme's own widget markup without the `folder-files-url` Stimulus value gets that full
+response, as before. Off-screen tiles skip rendering (`content-visibility: auto`); image tiles
+still show the original file (there's no thumbnail generation).
+
 The popup is a native modal `<dialog>` (`showModal()`): it opens above the page whatever its
 z-index, the page behind is inert and doesn't scroll, and the focus comes back to the field
 when it closes. It works with the keyboard: Tab goes through the tree and the tiles, Space or
@@ -131,6 +142,13 @@ Right-click in the file grid (or press the ContextMenu key / Shift+F10 on a tile
 rename / crop / move / delete a file, rename a folder, create a folder. The "Actions" button
 acts on the selected file, else the highlighted folder, else the current folder. The popup has
 no jQuery and no CSS framework dependency (native `<dialog>`).
+
+### Strings
+
+The UI is in French. The popup's strings, the locale used for sizes and dates (`fr-FR`) and the
+size units live in `LANG` (`assets/src/lang.ts`); the form widget's own strings ("Choisir un
+fichier", "Modifier"…) in the `labels` map at the top of its Twig block, which a theme's own
+widget block can redefine.
 
 ### Upload
 
@@ -201,7 +219,7 @@ The Stimulus controller dispatches DOM events prefixed with `golpilolz_media-lib
 
 | Event | `detail` |
 |---|---|
-| `select` | `files` |
+| `select` | `files` (the chosen files the popup loaded), `ids` (every chosen id, including files already in the field from folders not opened this time) |
 | `remove` | `id` (multiple: file removed from the widget) |
 | `rename-file` | `file`, `name` |
 | `rename-folder` | `folder`, `name` |
@@ -252,6 +270,8 @@ Symfony before the controller runs:
 | `POST /media-library/files/move` | missing `file` or `folder`, or not a positive integer | 422 |
 | `POST /media-library/files/delete` | missing `file`, or not a positive integer | 422 |
 | `GET /media-library/files/info` | missing `file` query parameter, or not a positive integer | 404 |
+| `GET /media-library/folders/files` | missing `folder` query parameter, or not a positive integer | 404 |
+| `GET /media-library/folders` | `files` that isn't a boolean (`0`/`1`, `true`/`false`) | 404 |
 | `POST /media-library/upload` | missing or failed `file` (also for a non-multipart body), `folder` not a positive integer | 422 |
 
 Those errors use Symfony's error format. With `Accept: application/json` it's a problem

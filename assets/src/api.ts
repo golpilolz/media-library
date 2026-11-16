@@ -21,6 +21,19 @@ const csrfHeaders = (csrfToken: string): Record<string, string> => csrfToken ===
 export const toMediaFile = ({id, name, url, size = null, width = null, height = null}: any): MediaFile =>
     ({id, name, url, size, width, height})
 
+// `url` with these query parameters set.
+export const withQuery = (url: string, params: Record<string, string>): string => {
+    const target = new URL(url, window.location.href)
+    Object.entries(params).forEach(([key, value]) => target.searchParams.set(key, value))
+    return target.toString()
+}
+
+// GET `url`?folder=<id>: the files of one folder (folder_files endpoint), loaded when it's opened.
+export const fetchFolderFiles = async (url: string, folder: number): Promise<MediaFile[]> => {
+    const json = await send(withQuery(url, {folder: String(folder)}), {headers: {Accept: 'application/json'}})
+    return (json.files ?? []).map(toMediaFile)
+}
+
 export const fetchJson = async <T>(url: string): Promise<T> => {
     const response = await fetch(url, {headers: {Accept: 'application/json'}})
     if (!response.ok) {

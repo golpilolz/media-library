@@ -29,7 +29,11 @@
     --ml-radius-control: .5rem;
     --ml-radius-field: .75rem;
     --ml-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* --ml-ease: color and hover changes. --ml-ease-out: what enters (starts fast, settles).
+       --ml-ease-drawer: the phone sheet (iOS-like). */
     --ml-ease: cubic-bezier(.25, .1, .25, 1);
+    --ml-ease-out: cubic-bezier(.23, 1, .32, 1);
+    --ml-ease-drawer: cubic-bezier(.32, .72, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -86,9 +90,11 @@
     transition: border-color .15s var(--ml-ease), background-color .15s var(--ml-ease);
 }
 
-.golpilolz-media-library-widget .ml-field-empty:hover {
-    border-color: var(--ml-accent);
-    background: var(--ml-selected);
+@media (hover: hover) {
+    .golpilolz-media-library-widget .ml-field-empty:hover {
+        border-color: var(--ml-accent);
+        background: var(--ml-selected);
+    }
 }
 
 .golpilolz-media-library-widget .ml-field-empty:focus-visible,
@@ -200,8 +206,10 @@
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
 }
 
-.golpilolz-media-library-widget .ml-field-btn:hover {
-    background: var(--ml-fill-strong);
+@media (hover: hover) {
+    .golpilolz-media-library-widget .ml-field-btn:hover {
+        background: var(--ml-fill-strong);
+    }
 }
 
 .golpilolz-media-library-widget .ml-field-btn:active {
@@ -276,13 +284,20 @@
     transition: opacity .15s var(--ml-ease), background-color .15s var(--ml-ease);
 }
 
-.golpilolz-media-library-widget .ml-preview-item:hover .ml-preview-remove,
 .golpilolz-media-library-widget .ml-preview-remove:focus-visible {
     opacity: 1;
 }
 
-.golpilolz-media-library-widget .ml-preview-remove:hover {
-    background: var(--ml-danger-fill);
+@media (hover: hover) {
+    .golpilolz-media-library-widget .ml-preview-item:hover .ml-preview-remove {
+        opacity: 1;
+    }
+}
+
+@media (hover: hover) {
+    .golpilolz-media-library-widget .ml-preview-remove:hover {
+        background: var(--ml-danger-fill);
+    }
 }
 
 .golpilolz-media-library-widget .ml-preview-remove:focus-visible {
@@ -314,9 +329,11 @@
     transition: border-color .15s var(--ml-ease), background-color .15s var(--ml-ease);
 }
 
-.golpilolz-media-library-widget .ml-field-add:hover {
-    border-color: var(--ml-accent);
-    background: var(--ml-selected);
+@media (hover: hover) {
+    .golpilolz-media-library-widget .ml-field-add:hover {
+        border-color: var(--ml-accent);
+        background: var(--ml-selected);
+    }
 }
 
 .golpilolz-media-library-widget .ml-field-add:focus-visible {
@@ -347,7 +364,7 @@
     background: var(--ml-backdrop, rgba(0, 0, 0, .32));
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
-    animation: ml-fade-in .2s var(--ml-ease, ease);
+    animation: ml-fade-in .2s var(--ml-ease-out, cubic-bezier(.23, 1, .32, 1));
 }
 
 /* The page behind the open popup doesn't scroll. */
@@ -375,7 +392,7 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     font: .875rem/1.4 var(--ml-font);
     -webkit-font-smoothing: antialiased;
     text-align: left;
-    animation: ml-panel-in .28s var(--ml-ease);
+    animation: ml-panel-in .28s var(--ml-ease-out);
 }
 
 /* Not on the base rule: it would override the closed dialog's display: none. */
@@ -427,9 +444,11 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
 }
 
-.golpilolz-media-library .ml-close:hover {
-    background: var(--ml-fill-strong);
-    color: var(--ml-text);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-close:hover {
+        background: var(--ml-fill-strong);
+        color: var(--ml-text);
+    }
 }
 
 /* ---- Header + toolbar ---- */
@@ -480,8 +499,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     cursor: pointer;
 }
 
-.golpilolz-media-library button.ml-crumb:hover {
-    background: var(--ml-selected);
+@media (hover: hover) {
+    .golpilolz-media-library button.ml-crumb:hover {
+        background: var(--ml-selected);
+    }
 }
 
 .golpilolz-media-library .ml-crumb--current {
@@ -536,10 +557,12 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     box-shadow: var(--ml-shadow-small);
 }
 
-.golpilolz-media-library .ml-icon-btn:hover,
-.golpilolz-media-library .ml-segment:not(.active):hover {
-    background: var(--ml-fill);
-    color: var(--ml-text);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-icon-btn:hover,
+    .golpilolz-media-library .ml-segment:not(.active):hover {
+        background: var(--ml-fill);
+        color: var(--ml-text);
+    }
 }
 
 .golpilolz-media-library .ml-search-field {
@@ -662,8 +685,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     color: var(--ml-folder);
 }
 
-.golpilolz-media-library .ml-tree-label:hover {
-    background: var(--ml-hover);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-tree-label:hover {
+        background: var(--ml-hover);
+    }
 }
 
 .golpilolz-media-library .ml-tree-item.active > .ml-tree-label {
@@ -701,6 +726,9 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     flex-direction: column;
     align-items: center;
     min-width: 0;
+    /* A big folder: tiles out of view skip layout and paint (size reserved until shown). */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 11rem;
     padding: .5rem;
     border: none;
     border-radius: .75rem;
@@ -710,8 +738,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     transition: background-color .15s var(--ml-ease), transform .1s ease-out;
 }
 
-.golpilolz-media-library .ml-item:hover {
-    background: var(--ml-hover);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-item:hover {
+        background: var(--ml-hover);
+    }
 }
 
 .golpilolz-media-library .ml-item:active,
@@ -833,6 +863,24 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     font-weight: 600;
 }
 
+.golpilolz-media-library .ml-grid-status {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    margin: 0;
+    padding: 3rem 1rem;
+    color: var(--ml-text-secondary);
+    font-size: .8125rem;
+}
+
+.golpilolz-media-library .ml-grid-status .ml-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
 .golpilolz-media-library .ml-no-results {
     grid-column: 1 / -1;
     margin: 0;
@@ -942,8 +990,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     transition: background-color .15s var(--ml-ease), opacity .15s var(--ml-ease), transform .1s ease-out;
 }
 
-.golpilolz-media-library .ml-btn:hover {
-    background: var(--ml-fill-strong);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-btn:hover {
+        background: var(--ml-fill-strong);
+    }
 }
 
 .golpilolz-media-library .ml-btn-primary {
@@ -951,8 +1001,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     color: var(--ml-on-accent);
 }
 
-.golpilolz-media-library .ml-btn-primary:hover {
-    background: var(--ml-accent-hover);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-btn-primary:hover {
+        background: var(--ml-accent-hover);
+    }
 }
 
 .golpilolz-media-library .ml-btn-danger {
@@ -960,9 +1012,11 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     color: #fff;
 }
 
-.golpilolz-media-library .ml-btn-danger:hover {
-    background: var(--ml-danger-fill);
-    filter: brightness(1.08);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-btn-danger:hover {
+        background: var(--ml-danger-fill);
+        filter: brightness(1.08);
+    }
 }
 
 .golpilolz-media-library .ml-btn:disabled {
@@ -994,7 +1048,7 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     font-size: .8125rem;
     font-weight: 500;
     box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
-    animation: ml-toast-in .25s var(--ml-ease);
+    animation: ml-toast-in .25s var(--ml-ease-out);
     transition: opacity .3s var(--ml-ease);
 }
 
@@ -1023,8 +1077,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     cursor: pointer;
 }
 
-.golpilolz-media-library .ml-alert-close:hover {
-    background: rgba(255, 255, 255, .32);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-alert-close:hover {
+        background: rgba(255, 255, 255, .32);
+    }
 }
 
 .golpilolz-media-library .ml-alert.out {
@@ -1039,13 +1095,19 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     display: flex;
     flex-direction: column;
     min-width: 11.25rem;
+    /* A popover where supported (top layer): undo its UA styles (centered, bordered, Canvas colors). */
+    inset: auto;
+    margin: 0;
+    overflow: visible;
     padding: .3125rem;
+    border: none;
     border-radius: .625rem;
     background: var(--ml-menu);
+    color: var(--ml-text);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
     box-shadow: 0 10px 30px rgba(0, 0, 0, .2), 0 0 0 .5px var(--ml-separator);
-    animation: ml-fade-in .12s var(--ml-ease);
+    animation: ml-fade-in .12s var(--ml-ease-out);
 }
 
 .golpilolz-media-library .ml-context-item {
@@ -1059,11 +1121,18 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     cursor: pointer;
 }
 
-.golpilolz-media-library .ml-context-item:hover,
 .golpilolz-media-library .ml-context-item:focus-visible {
     background: var(--ml-accent-fill);
     color: var(--ml-on-accent);
     outline: none;
+}
+
+@media (hover: hover) {
+    .golpilolz-media-library .ml-context-item:hover {
+        background: var(--ml-accent-fill);
+        color: var(--ml-on-accent);
+        outline: none;
+    }
 }
 
 /* ---- Dialogs ---- */
@@ -1079,7 +1148,7 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
 }
 
 .golpilolz-media-library .ml-dialog[open] {
-    animation: ml-dialog-in .22s var(--ml-ease);
+    animation: ml-dialog-in .22s var(--ml-ease-out);
 }
 
 .golpilolz-media-library .ml-dialog::backdrop {
@@ -1179,8 +1248,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     accent-color: var(--ml-accent);
 }
 
-.golpilolz-media-library .ml-move-folder:hover {
-    background: var(--ml-hover);
+@media (hover: hover) {
+    .golpilolz-media-library .ml-move-folder:hover {
+        background: var(--ml-hover);
+    }
 }
 
 .golpilolz-media-library .ml-move-folder:has(input:checked) {
@@ -1240,8 +1311,10 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     text-decoration: none;
 }
 
-.golpilolz-media-library .ml-info-list a:hover {
-    text-decoration: underline;
+@media (hover: hover) {
+    .golpilolz-media-library .ml-info-list a:hover {
+        text-decoration: underline;
+    }
 }
 
 .golpilolz-media-library .ml-info-pending {
@@ -1400,7 +1473,7 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     max-height: 85vh;
     border-radius: .75rem;
     box-shadow: var(--ml-shadow);
-    animation: ml-zoom .22s var(--ml-ease);
+    animation: ml-zoom .22s var(--ml-ease-out);
 }
 
 /* ---- Small screens: bottom sheet, no sidebar (use the breadcrumb) ---- */
@@ -1413,7 +1486,7 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
         height: 92dvh;
         margin: 0;
         border-radius: var(--ml-radius) var(--ml-radius) 0 0;
-        animation-name: ml-sheet-in;
+        animation: ml-sheet-in .4s var(--ml-ease-drawer);
     }
 
     .golpilolz-media-library .ml-tree {
@@ -1532,8 +1605,32 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
 
 /* ---- Motion ---- */
 
-/* The panel animates "top"/"bottom", not "transform": a transformed ancestor would become
-   the containing block of the position: fixed context menu and offset it. */
+/* Fallback without popovers: the panel animates "top"/"bottom", not "transform": a transformed
+   ancestor would become the containing block of the position: fixed context menu and offset it. */
+/* Where popovers exist, the context menu sits in the top layer, so a transform on the panel no
+   longer offsets it: the panel then rises with transform (composited) instead of top/bottom. */
+@supports selector(:popover-open) {
+    .golpilolz-media-library.ml-panel {
+        animation-name: ml-panel-rise;
+    }
+
+    @media (max-width: 640px) {
+        .golpilolz-media-library.ml-panel {
+            animation-name: ml-sheet-rise;
+        }
+    }
+}
+
+@keyframes ml-panel-rise {
+    from { opacity: 0; transform: translateY(1.5rem) scale(.98); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes ml-sheet-rise {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+}
+
 @keyframes ml-panel-in {
     from { opacity: 0; top: 1.5rem; bottom: -1.5rem; }
     to { opacity: 1; top: 0; bottom: 0; }

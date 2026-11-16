@@ -21,6 +21,20 @@ class FolderRepository extends ServiceEntityRepository
         parent::__construct($registry, Folder::class);
     }
 
+    /**
+     * Every folder with its files, in one query (getFiles() would otherwise query once per folder).
+     *
+     * @return Folder[]
+     */
+    public function findAllWithFiles(): array
+    {
+        return $this->createQueryBuilder('folder')
+            ->leftJoin('folder.files', 'file')
+            ->addSelect('file')
+            ->getQuery()
+            ->getResult();
+    }
+
 //    /**
 //     * @return Folder[] Returns an array of Folder objects
 //     */

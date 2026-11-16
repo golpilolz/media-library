@@ -1,11 +1,26 @@
 {% block golpilolz_media_library_single_widget %}
     {%- set controller = 'golpilolz--media-library--media-library' -%}
+    {#- The widget's strings (French, like LANG in assets/src/lang.ts): one place to change them. #}
+    {%- set labels = {
+        choose_one: 'Choisir un fichier',
+        choose_many: 'Choisir des fichiers',
+        browse: 'Parcourir la médiathèque',
+        add: 'Ajouter',
+        edit: 'Modifier',
+        remove: 'Retirer',
+        remove_all: 'Tout retirer',
+        file: 'fichier',
+        files: 'fichiers',
+        title: 'Médiathèque',
+        close: 'Fermer',
+    } -%}
     {%- set dataController = (attr['data-controller']|default('') ~ ' ' ~ controller)|trim -%}
     {%- set ids = value is iterable ? value : (value is empty ? [] : [value]) -%}
     {%- set selected = form.vars.data is iterable ? form.vars.data : (form.vars.data is empty ? [] : [form.vars.data]) -%}
     <div class="golpilolz-media-library-widget ml-theme-{{ theme|default('default') }}"
          data-controller="{{ dataController }}"
          data-{{ controller }}-folders-url-value="{{ path('golpilolz_media-library_folders') }}"
+         data-{{ controller }}-folder-files-url-value="{{ path('golpilolz_media-library_folder_files') }}"
          data-{{ controller }}-upload-url-value="{{ upload_url }}"
          data-{{ controller }}-folder-url-value="{{ folder_url|default('') }}"
          data-{{ controller }}-rename-file-url-value="{{ rename_file_url|default('') }}"
@@ -23,8 +38,8 @@
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.75"/><path d="m21 16-4.5-4.5L8 20"/></svg>
             </span>
             <span class="ml-field-empty-text">
-                <span class="ml-field-empty-title">{{ multiple ? 'Choisir des fichiers' : 'Choisir un fichier' }}</span>
-                <span class="ml-field-empty-hint">Parcourir la médiathèque</span>
+                <span class="ml-field-empty-title">{{ multiple ? labels.choose_many : labels.choose_one }}</span>
+                <span class="ml-field-empty-hint">{{ labels.browse }}</span>
             </span>
         </button>
         <div class="ml-field-filled{{ multiple ? ' ml-field-filled--multiple' }}"{{ filled ? '' : ' hidden' }} data-{{ controller }}-target="filled">
@@ -32,7 +47,8 @@
                 <div class="ml-field-preview" data-{{ controller }}-target="preview">
                     {%- for file in selected -%}
                         {%- set url = file.url|default('') -%}
-                        {%- set ext = url|split('.')|last|lower -%}
+                        {#- Same rule as extension() in utils.ts: the query string and fragment don't count. #}
+                        {%- set ext = url|split('?')|first|split('#')|first|split('/')|last|split('.')|last|lower -%}
                         {%- set kind = ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'] ? 'picture'
                             : ext == 'pdf' ? 'pdf'
                             : ext in ['doc', 'docx', 'odt', 'rtf'] ? 'doc'
@@ -50,7 +66,7 @@
                                 <button type="button" class="ml-preview-remove"
                                         data-action="{{ controller }}#remove"
                                         data-{{ controller }}-id-param="{{ file.id }}"
-                                        aria-label="Retirer {{ file.name|default('') }}" title="Retirer">
+                                        aria-label="{{ labels.remove }} {{ file.name|default('') }}" title="{{ labels.remove }}">
                                     <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
                                 </button>
                             {%- endif -%}
@@ -60,24 +76,24 @@
                 {%- if multiple %}
                 <button type="button" class="ml-field-add" data-action="{{ controller }}#open">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                    <span>Ajouter</span>
+                    <span>{{ labels.add }}</span>
                 </button>
                 {%- endif %}
             </div>
             <div class="ml-field-actions">
                 {%- if multiple %}
-                <span class="ml-field-count" data-{{ controller }}-target="count">{{ ids|length > 1 ? ids|length ~ ' fichiers' : '1 fichier' }}</span>
-                <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">Tout retirer</button>
+                <span class="ml-field-count" data-{{ controller }}-target="count">{{ ids|length }} {{ ids|length > 1 ? labels.files : labels.file }}</span>
+                <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">{{ labels.remove_all }}</button>
                 {%- else %}
-                <button type="button" class="ml-field-btn" data-action="{{ controller }}#open">Modifier</button>
-                <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">Retirer</button>
+                <button type="button" class="ml-field-btn" data-action="{{ controller }}#open">{{ labels.edit }}</button>
+                <button type="button" class="ml-field-btn ml-field-btn--danger" data-action="{{ controller }}#clear">{{ labels.remove }}</button>
                 {%- endif %}
             </div>
         </div>
 
         {#- Native modal dialog (showModal()): top layer, inert page, focus trap, Escape. #}
-        <dialog class="golpilolz-media-library ml-panel" aria-label="Médiathèque" data-{{ controller }}-target="popup">
-            <button type="button" class="ml-close" aria-label="Fermer" title="Fermer"
+        <dialog class="golpilolz-media-library ml-panel" aria-label="{{ labels.title }}" data-{{ controller }}-target="popup">
+            <button type="button" class="ml-close" aria-label="{{ labels.close }}" title="{{ labels.close }}"
                     data-action="{{ controller }}#close">
                 <span class="icon-cross" aria-hidden="true"></span>
             </button>

@@ -7,6 +7,13 @@ import {escapeHtml} from './utils.js'
 // Element that had the focus when each menu opened: it gets it back when the menu closes.
 const openers = new WeakMap<HTMLElement, HTMLElement>()
 
+// Where supported, the menu is a manual popover: it's shown in the top layer, above the modal
+// panel and outside its containing block, so a transform on the panel doesn't offset it.
+// `hidden` stays in sync either way (it's what hides the menu without popover support).
+const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype
+// The Popover API, missing from the DOM typings of the TypeScript this package uses.
+type Popover = HTMLElement & { showPopover(): void, hidePopover(): void }
+
 export const openContextMenu = (menu: HTMLElement, items: MenuItem[], x: number, y: number) => {
     if (document.activeElement instanceof HTMLElement && !menu.contains(document.activeElement)) {
         openers.set(menu, document.activeElement)
@@ -46,6 +53,12 @@ export const openContextMenu = (menu: HTMLElement, items: MenuItem[], x: number,
         }
     }
     menu.hidden = false
+    if (POPOVER) {
+        menu.setAttribute('popover', 'manual')
+        if (!menu.matches(':popover-open')) {
+            (menu as Popover).showPopover()
+        }
+    }
 
     // Keep the menu inside the viewport.
     const {innerWidth, innerHeight} = window
@@ -61,6 +74,9 @@ export const isContextMenuOpen = (menu: HTMLElement | null): boolean => menu !==
 export const closeContextMenu = (menu: HTMLElement | null, restoreFocus = false) => {
     if (!menu || menu.hidden) {
         return
+    }
+    if (POPOVER && menu.matches(':popover-open')) {
+        (menu as Popover).hidePopover()
     }
     menu.hidden = true
     const opener = openers.get(menu)

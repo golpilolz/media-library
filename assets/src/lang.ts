@@ -1,6 +1,9 @@
 // UI strings (French).
 
 export const LANG = {
+    // Formats numbers (file sizes) and dates.
+    locale: 'fr-FR',
+    sizeUnits: ['octets', 'Ko', 'Mo', 'Go', 'To'],
     title: 'Médiathèque',
     root: 'Accueil',
     select: 'Sélectionner',
@@ -14,6 +17,13 @@ export const LANG = {
     oneSelected: '1 fichier sélectionné',
     manySelected: (count: number) => `${count} fichiers sélectionnés`,
     search: 'Rechercher un fichier',
+    breadcrumb: 'Chemin',
+    sort: 'Tri',
+    folders: 'Dossiers',
+    loadingFolder: 'Chargement du dossier…',
+    errorLoadFolder: 'Impossible de charger ce dossier',
+    retry: 'Réessayer',
+    fileCount: (count: number) => count > 1 ? `${count} fichiers` : `${count} fichier`,
     noResults: (search: string) => `Aucun fichier ni dossier ne correspond à « ${search} »`,
     sortAsc: 'Trier de A à Z',
     sortDesc: 'Trier de Z à A',
@@ -37,6 +47,7 @@ export const LANG = {
     infoId: 'Identifiant',
     close: 'Fermer',
     cropRatio: 'Proportions',
+    cropFree: 'Libre',
     cropArea: 'Zone de recadrage',
     croppedName: (name: string, ext: string) => `${name} (recadré).${ext}`,
     remove: 'Retirer',
