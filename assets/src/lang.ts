@@ -14,6 +14,7 @@ export const LANG = {
     oneSelected: '1 fichier sélectionné',
     manySelected: (count: number) => `${count} fichiers sélectionnés`,
     search: 'Rechercher un fichier',
+    noResults: (search: string) => `Aucun fichier ni dossier ne correspond à « ${search} »`,
     sortAsc: 'Trier de A à Z',
     sortDesc: 'Trier de Z à A',
     openFolder: 'Ouvrir le dossier',

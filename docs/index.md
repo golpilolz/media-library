@@ -122,6 +122,10 @@ With `multiple`, the widget shows the selected files as tiles: × removes one, "
 the popup with the current selection preselected, "Tout retirer" clears the field. An empty
 multiple field submits nothing (its hidden input is disabled), so the collection is emptied.
 
+Deleting a chosen file from the popup also takes it out of the field, so the form doesn't submit
+a deleted file; renaming it updates the field's preview. Both find the preview through the
+`data-file-id` attribute of `.ml-preview-item`: keep it in a theme's own widget markup.
+
 Right-click in the file grid (or press the ContextMenu key / Shift+F10 on a tile, or use the "…"
 "Actions" button of the toolbar, which works on touch screens) for: show the informations of /
 rename / crop / move / delete a file, rename a folder, create a folder. The "Actions" button

@@ -39,7 +39,7 @@
                             : ext in ['xls', 'xlsx', 'ods', 'csv'] ? 'xls'
                             : ext in ['zip', 'rar', '7z', 'gz', 'tar'] ? 'zip'
                             : 'txt' -%}
-                        <div class="ml-preview-item" title="{{ file.name|default('') }}">
+                        <div class="ml-preview-item" data-file-id="{{ file.id }}" title="{{ file.name|default('') }}">
                             <span class="ml-preview-thumb ml-thumb--{{ kind }}">
                                 {%- if kind == 'picture' and url is not empty -%}
                                     <img src="{{ url starts with 'http' or url starts with '/' ? url : app.request.basePath ~ '/' ~ url }}" alt="" loading="lazy">

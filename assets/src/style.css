@@ -833,6 +833,16 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     font-weight: 600;
 }
 
+.golpilolz-media-library .ml-no-results {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 3rem 1rem;
+    color: var(--ml-text-secondary);
+    font-size: .8125rem;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
 .golpilolz-media-library .ml-empty-hint {
     margin: .25rem 0 0;
     font-size: .8125rem;
@@ -989,7 +999,32 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
 }
 
 .golpilolz-media-library .ml-alert--danger {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding-right: .375rem;
     background: var(--ml-danger-fill);
+    /* It stays until dismissed: its × must be clickable through the toasts' container. */
+    pointer-events: auto;
+}
+
+.golpilolz-media-library .ml-alert-close {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .2);
+    color: #fff;
+    cursor: pointer;
+}
+
+.golpilolz-media-library .ml-alert-close:hover {
+    background: rgba(255, 255, 255, .32);
 }
 
 .golpilolz-media-library .ml-alert.out {
@@ -1468,7 +1503,8 @@ html:has(.golpilolz-media-library.ml-panel[open]) {
     }
 
     /* The × keeps its size over the tile; an invisible ring widens what a finger can hit. */
-    .golpilolz-media-library-widget .ml-preview-remove::after {
+    .golpilolz-media-library-widget .ml-preview-remove::after,
+    .golpilolz-media-library .ml-alert-close::after {
         content: '';
         position: absolute;
         inset: -.625rem;

@@ -16,8 +16,8 @@ export const layoutTemplate = (upload: boolean): string => {
             <nav class="ml-breadcrumb" aria-label="Chemin"></nav>
             <div class="ml-toolbar-actions">
                 <div class="ml-segmented" role="group" aria-label="Tri">
-                    <button type="button" class="ml-segment active" data-ml-action="sort-asc" title="${LANG.sortAsc}" aria-label="${LANG.sortAsc}"><span class="icon-sort-alpha-asc"></span></button>
-                    <button type="button" class="ml-segment" data-ml-action="sort-desc" title="${LANG.sortDesc}" aria-label="${LANG.sortDesc}"><span class="icon-sort-alpha-desc"></span></button>
+                    <button type="button" class="ml-segment active" data-ml-action="sort-asc" title="${LANG.sortAsc}" aria-label="${LANG.sortAsc}" aria-pressed="true"><span class="icon-sort-alpha-asc"></span></button>
+                    <button type="button" class="ml-segment" data-ml-action="sort-desc" title="${LANG.sortDesc}" aria-label="${LANG.sortDesc}" aria-pressed="false"><span class="icon-sort-alpha-desc"></span></button>
                 </div>
                 <button type="button" class="ml-icon-btn" data-ml-action="open-folder" title="${LANG.openFolder}" aria-label="${LANG.openFolder}"><span class="icon-folder-open"></span></button>
                 <button type="button" class="ml-icon-btn" data-ml-action="zoom" title="${LANG.zoom}" aria-label="${LANG.zoom}"><span class="icon-zoom-in"></span></button>
@@ -50,7 +50,7 @@ export const layoutTemplate = (upload: boolean): string => {
 // Keep in sync with the widget template.
 export const previewTemplate = (file: MediaFile, multiple: boolean, identifier: string): string => {
     const name = escapeHtml(file.name)
-    return `<div class="ml-preview-item" title="${name}">
+    return `<div class="ml-preview-item" data-file-id="${file.id}" title="${name}">
         <span class="ml-preview-thumb ml-thumb--${isImage(file) ? 'picture' : iconFor(file)}">${isImage(file) ? `<img src="${escapeHtml(file.url)}" alt="" loading="lazy">` : ''}</span>
         <span class="ml-preview-name">${name}</span>
         ${multiple ? `<button type="button" class="ml-preview-remove" data-action="${identifier}#remove" data-${identifier}-id-param="${file.id}" aria-label="${LANG.remove} ${name}" title="${LANG.remove}">

@@ -84,6 +84,7 @@ export default class extends Controller {
         }
         this.loaderTarget.hidden = false
         this.selectedFileIds = new Set(this.inputValues())
+        this.clearSearch()
 
         // A native modal <dialog>: top layer, inert page behind, focus kept inside, Escape = cancel.
         if (!this.popupTarget.open) {
@@ -122,6 +123,7 @@ export default class extends Controller {
         this.opened = false
         this.session++
         this.closeContextMenu()
+        this.clearAlerts()
         this.destroyDropzone()
         if (this.popupTarget.open) {
             this.popupTarget.close()
@@ -137,9 +139,7 @@ export default class extends Controller {
 
     // Multiple: remove one file from the selection (preview tile's × button).
     remove({params: {id}}: { params: { id: number } }) {
-        this.writeInputs(this.inputValues().filter(value => value !== id))
-        this.previewTarget.querySelector(`[data-${this.identifier}-id-param="${id}"]`)?.closest('.ml-preview-item')?.remove()
-        this.toggleButtons()
+        this.unselect(id)
         this.dispatchEvent('remove', {id})
     }
 
@@ -267,7 +267,6 @@ export default class extends Controller {
         const files = [...(this.getFolder(this.activeFolderId)?.files ?? [])].sort(byName(this.sortAsc))
 
         this.highlightedFolderId = null
-        this.find<HTMLInputElement>('.ml-search').value = ''
         // A focused tile is about to be replaced: keep the focus in the grid.
         if (content.contains(document.activeElement)) {
             content.focus({preventScroll: true})
@@ -301,7 +300,14 @@ export default class extends Controller {
                 ${fileMeta(file) ? `<span class="ml-meta">${escapeHtml(fileMeta(file))}</span>` : ''}
             </button>`
             }).join('')
+            + '<p class="ml-no-results" role="status" hidden></p>'
+        // The search survives a re-render in the same folder (rename, upload, move, sort…).
+        this.filter(this.find<HTMLInputElement>('.ml-search').value)
         this.updateFooter()
+    }
+
+    private clearSearch() {
+        this.find<HTMLInputElement>('.ml-search').value = ''
     }
 
     // ---- Events ----------------------------------------------------------
@@ -388,8 +394,10 @@ export default class extends Controller {
             case 'sort-asc':
             case 'sort-desc':
                 this.sortAsc = action === 'sort-asc'
-                this.findAll('[data-ml-action^="sort-"]').forEach(button =>
-                    button.classList.toggle('active', button.dataset.mlAction === action))
+                this.findAll('[data-ml-action^="sort-"]').forEach(button => {
+                    button.classList.toggle('active', button.dataset.mlAction === action)
+                    button.setAttribute('aria-pressed', String(button.dataset.mlAction === action))
+                })
                 this.renderContent()
                 return
             case 'open-folder':
@@ -485,6 +493,7 @@ export default class extends Controller {
     }
 
     private navigate(id: number) {
+        this.clearSearch()
         this.activeFolderId = id
         this.openAncestors(id)
         if (id !== ROOT) {
@@ -500,10 +509,18 @@ export default class extends Controller {
 
     private filter(search: string) {
         const needle = search.trim().toLocaleUpperCase()
-        this.findAll('.ml-content .ml-item').forEach(item => {
+        const items = this.findAll('.ml-content .ml-item')
+        items.forEach(item => {
             const title = item.querySelector('.ml-title')?.textContent ?? ''
             item.hidden = needle !== '' && !title.toLocaleUpperCase().includes(needle)
         })
+        // Say so when the search hides every tile (an empty folder has its own message).
+        const message = this.find('.ml-no-results')
+        if (message) {
+            const none = items.length > 0 && items.every(item => item.hidden)
+            message.textContent = none ? LANG.noResults(search.trim()) : ''
+            message.hidden = !none
+        }
     }
 
     private zoom() {
@@ -557,6 +574,32 @@ export default class extends Controller {
             previous = input
         }
         first.dispatchEvent(new Event('change', {bubbles: true}))
+    }
+
+    // Take a file out of the field's value and its preview (× button, or the file was deleted).
+    private unselect(id: number) {
+        if (!this.inputValues().includes(id)) {
+            return
+        }
+        this.writeInputs(this.inputValues().filter(value => value !== id))
+        this.previewItem(id)?.remove()
+        this.toggleButtons()
+    }
+
+    // The field's preview of a chosen file, if any.
+    private previewItem(id: number): HTMLElement | null {
+        return this.hasPreviewTarget ? this.previewTarget.querySelector<HTMLElement>(`.ml-preview-item[data-file-id="${id}"]`) : null
+    }
+
+    // Keep the field's preview in line with a file renamed in the popup.
+    private renamePreview(id: number, name: string) {
+        const item = this.previewItem(id)
+        if (!item) {
+            return
+        }
+        item.title = name
+        item.querySelector('.ml-preview-name').textContent = name
+        item.querySelector('.ml-preview-remove')?.setAttribute('aria-label', `${LANG.remove} ${name}`)
     }
 
     private toggleButtons() {
@@ -655,6 +698,7 @@ export default class extends Controller {
                     const name = readTitle(dialog)
                     await this.persist('rename-file', {file, name}, this.renameFileUrlValue, {file: file.id, name}, LANG.errorRenameFile)
                     file.name = name
+                    this.renamePreview(file.id, name)
                     this.renderContent()
                     this.alert(LANG.successRenameFile)
                 },
@@ -779,6 +823,8 @@ export default class extends Controller {
                         folder.files = folder.files.filter(other => other.id !== file.id)
                     }
                     this.selectedFileIds.delete(file.id)
+                    // The field must not keep submitting a deleted file.
+                    this.unselect(file.id)
                     this.renderContent()
                     this.alert(LANG.successDeleteFile)
                 },
@@ -935,16 +981,34 @@ export default class extends Controller {
 
     // ---- Helpers ---------------------------------------------------------
 
+    // A toast. Success: announced politely by the .ml-alerts live region, gone after 5s.
+    // Error: role="alert", and it stays until dismissed (×) or the popup closes, so there's
+    // time to read it; the same error isn't stacked twice (e.g. several failed uploads).
     private alert(message: string, type: 'success' | 'danger' = 'success') {
+        const alerts = this.find('.ml-alerts')
         const alert = document.createElement('div')
         alert.className = `ml-alert ml-alert--${type}`
-        alert.setAttribute('role', 'status')
-        alert.textContent = message
-        this.find('.ml-alerts').append(alert)
-        setTimeout(() => {
+        const dismiss = () => {
             alert.classList.add('out')
             setTimeout(() => alert.remove(), 300)
-        }, 5000)
+        }
+        if (type === 'success') {
+            alert.textContent = message
+            setTimeout(dismiss, 5000)
+        } else {
+            [...alerts.querySelectorAll('.ml-alert--danger')].filter(other => other.firstElementChild?.textContent === message).forEach(other => other.remove())
+            alert.setAttribute('role', 'alert')
+            alert.innerHTML = `<span>${escapeHtml(message)}</span>
+                <button type="button" class="ml-alert-close" aria-label="${LANG.close}" title="${LANG.close}">
+                    <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+                </button>`
+            alert.querySelector('button').addEventListener('click', dismiss)
+        }
+        alerts.append(alert)
+    }
+
+    private clearAlerts() {
+        this.contentTarget.querySelector('.ml-alerts')?.replaceChildren()
     }
 
     // Dispatch an event a listener can answer asynchronously with event.detail.respondWith(promise).
